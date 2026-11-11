@@ -1,0 +1,114 @@
+// Ayudantes para crear partidas de prueba con una Configuración válida pequeña.
+
+import { validateConfig } from "../../src/server/config-loader.js";
+import { createGame } from "../../src/engine/game.js";
+import { mulberry32 } from "../../src/engine/rng.js";
+
+/** Configuración de prueba válida (Arena pequeña, sin Obstáculos por defecto). */
+export function testConfigRaw(overrides = {}) {
+  const raw = {
+    server: { port: { value: 3000, default: 3000, min: 1, max: 65535, integer: true }, spectatorPath: { default: "/espectador" } },
+    arena: {
+      width: { default: 800, min: 400, max: 20000 },
+      height: { default: 600, min: 400, max: 20000 },
+      obstacles: { default: [] },
+    },
+    tick: { rate: { default: 30, min: 1, max: 120, integer: true } },
+    tank: {
+      speed: { default: 200, min: 1, max: 2000 },
+      size: { default: 40, min: 8, max: 200 },
+      barrelLength: { default: 32, min: 1, max: 200 },
+      maxHealth: { default: 3, min: 1, max: 1000 },
+      respawnS: { default: 1, min: 0.5, max: 60 },
+      protectionS: { default: 2, min: 0, max: 10 },
+      safeDistance: { default: 100, min: 0, max: 20000 },
+      safeMaxAttempts: { default: 30, min: 1, max: 1000, integer: true },
+    },
+    bullet: {
+      speed: { default: 600, min: 1, max: 5000 },
+      radius: { default: 5, min: 1, max: 50 },
+      damage: { default: 1, min: 1, max: 1000 },
+      reloadMs: { default: 500, min: 0, max: 10000 },
+      maxActive: { default: 3, min: 1, max: 50, integer: true },
+      maxBounces: { default: 3, min: 0, max: 10, integer: true },
+      lifetimeS: { default: 5, min: 0.1, max: 60 },
+      selfDamage: { default: true },
+    },
+    score: {
+      kill: { default: 10, min: 0, max: 100000 },
+      leaderBonus: { default: 5, min: 0, max: 100000 },
+      deathLossPercent: { default: 50, min: 0, max: 100, integer: true },
+    },
+    boxes: {
+      max: { default: 5, min: 0, max: 100, integer: true },
+      intervalS: { default: 10, min: 0.1, max: 600 },
+      points: { default: 10, min: 0, max: 100000 },
+      size: { default: 30, min: 4, max: 200 },
+      maxAttempts: { default: 20, min: 1, max: 1000, integer: true },
+    },
+    bots: {
+      count: { default: 0, min: 0, max: 20, integer: true },
+      detectDistance: { default: 60, min: 0, max: 5000 },
+      visionRange: { default: 500, min: 0, max: 20000 },
+      arriveDistance: { default: 20, min: 1, max: 5000 },
+      targetTimeoutS: { default: 10, min: 0.1, max: 600 },
+      inRanking: { default: false },
+    },
+    players: {
+      max: { default: 50, min: 1, max: 200, integer: true },
+      nickMin: { default: 2, min: 1, max: 100, integer: true },
+      nickMax: { default: 16, min: 1, max: 100, integer: true },
+      interestWidth: { default: 1600, min: 100, max: 20000 },
+      interestHeight: { default: 1000, min: 100, max: 20000 },
+    },
+    view: {
+      width: { default: 1440, min: 400, max: 10000 },
+      height: { default: 900, min: 400, max: 10000 },
+    },
+    network: {
+      maxMessageBytes: { default: 1024, min: 64, max: 65536, integer: true },
+      maxFrameBytes: { default: 65536, min: 1024, max: 1048576, integer: true },
+      maxMessagesPerSecond: { default: 90, min: 1, max: 1000, integer: true },
+      maxExceededWindows: { default: 3, min: 1, max: 100, integer: true },
+      heartbeatIntervalMs: { default: 10000, min: 100, max: 600000, integer: true },
+      heartbeatTimeoutMs: { default: 30000, min: 100, max: 600000, integer: true },
+      interpolationDelayMs: { default: 100, min: 0, max: 2000, integer: true },
+    },
+    effects: {
+      maxDurationMs: { default: 60000, min: 100, max: 600000, integer: true },
+      speedMultiplierMin: { default: 0.2, min: 0.01, max: 10 },
+      speedMultiplierMax: { default: 3, min: 0.01, max: 10 },
+      slow: {
+        factor: { default: 0.5, min: 0.01, max: 10 },
+        durationMs: { default: 5000, min: 100, max: 60000, integer: true },
+      },
+    },
+    debug: { default: false },
+  };
+  applyOverrides(raw, overrides);
+  return raw;
+}
+
+function applyOverrides(raw, overrides) {
+  for (const [path, value] of Object.entries(overrides)) {
+    const parts = path.split(".");
+    let node = raw;
+    for (let i = 0; i < parts.length - 1; i++) node = node[parts[i]];
+    node[parts[parts.length - 1]].value = value;
+  }
+}
+
+/** Crea una partida de prueba con una semilla fija. */
+export function makeGame(seed = 1, overrides = {}) {
+  const r = validateConfig(testConfigRaw(overrides));
+  if (!r.ok) throw new Error("config de prueba inválida: " + r.errors.join("; "));
+  const game = createGame({ config: r.config, rng: mulberry32(seed) });
+  return { game, config: r.config };
+}
+
+/** Avanza n Ticks. */
+export function advance(game, n) {
+  const results = [];
+  for (let i = 0; i < n; i++) results.push(game.step());
+  return results;
+}

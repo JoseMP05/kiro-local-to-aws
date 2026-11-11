@@ -1,0 +1,19 @@
+{
+  "name": "tank-game-core",
+  "version": "1.0.0",
+  "description": "Núcleo jugable de un juego web multijugador de tanques con vista cenital",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server/main.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "fast-check": "^3.23.1"
+  }
+}
