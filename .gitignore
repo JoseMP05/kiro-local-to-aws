@@ -43,3 +43,6 @@ cdk.out/
 
 # Logs
 *.log
+
+# Local AI tooling cache
+.atl/
