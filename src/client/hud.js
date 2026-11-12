@@ -54,11 +54,29 @@ export function minimapLayout(arena, maxW, maxH) {
   return { scale, w: Math.round(arena.w * scale), h: Math.round(arena.h * scale) };
 }
 
+/**
+ * Insignias de potenciadores activos del Jugador.
+ * @param {{ effects?: Array<{ name: string, remainingMs: number }>, shield?: boolean }|undefined} own
+ * @returns {Array<{ label: string, color: string }>}
+ */
+export function powerupBadges(own) {
+  if (!own || own.dead) return [];
+  const out = [];
+  for (const e of own.effects ?? []) {
+    const secs = Math.ceil(e.remainingMs / 1000);
+    if (e.name === "turbo") out.push({ label: `TURBO ${secs}S`, color: "#ffca28" });
+    else if (e.name === "ralentizar") out.push({ label: `LENTO ${secs}S`, color: "#90a4ae" });
+  }
+  if (own.shield) out.push({ label: "ESCUDO", color: "#4fc3f7" });
+  return out;
+}
+
 /** Filas del panel de controles: teclas y acción. */
 export const CONTROLS = [
   { keys: ["W", "A", "S", "D"], action: "MOVER (O FLECHAS)" },
   { keys: ["RATÓN"], action: "APUNTAR" },
   { keys: ["CLIC"], action: "DISPARAR" },
+  { keys: ["M"], action: "SONIDO SÍ/NO" },
   { keys: ["H"], action: "OCULTAR AYUDA" },
 ];
 
@@ -75,6 +93,7 @@ export function drawHud(ctx, scene, screen) {
   if (scene.showHelp) drawControls(ctx, screen);
   else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
+  if (scene.badges?.length) drawBadges(ctx, scene.badges, screen);
   ctx.restore();
 }
 
@@ -268,4 +287,21 @@ function drawCountdown(ctx, scene, screen) {
   const secs = countdownSeconds(scene.respawnTick, scene.estimatedTick, scene.tickRate);
   drawOutlinedText(ctx, "ELIMINADO", screen.w / 2, screen.h / 2 - 70, { px: 28, color: "#ef5350" });
   drawOutlinedText(ctx, `REAPARECES EN ${secs}`, screen.w / 2, screen.h / 2 - 30, { px: 40, color: PALETTE.accent });
+}
+
+function drawBadges(ctx, badges, screen) {
+  setFont(ctx, 18);
+  const pad = 10;
+  const h = 18 + pad * 2;
+  let y = screen.h - h - MARGIN - 4;
+  for (const b of badges) {
+    const w = Math.ceil(ctx.measureText(b.label).width) + pad * 2;
+    const x = screen.w - w - MARGIN - 4;
+    drawPanel(ctx, x, y, w, h);
+    ctx.fillStyle = b.color;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(b.label, x + pad, y + pad);
+    y -= h + 10;
+  }
 }

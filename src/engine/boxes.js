@@ -40,8 +40,21 @@ export function trySpawnBox(world, env, rng, nextId) {
   );
   if (!point) return null;
 
-  const box = { id: nextId(), x: point.x, y: point.y, kind: "puntos" };
+  const box = { id: nextId(), x: point.x, y: point.y, kind: pickKind(env.powerupChance ?? 0, rng) };
   return box;
+}
+
+/** Tipos de Caja que son potenciadores. */
+export const POWERUP_KINDS = ["turbo", "escudo"];
+
+/**
+ * Elige el tipo de una Caja nueva. Con probabilidad 0 no consume el rng, de
+ * modo que las partidas sin potenciadores se comportan igual que antes.
+ */
+function pickKind(powerupChance, rng) {
+  if (powerupChance <= 0) return "puntos";
+  if (rng() >= powerupChance) return "puntos";
+  return POWERUP_KINDS[Math.floor(rng() * POWERUP_KINDS.length)];
 }
 
 /**
@@ -65,7 +78,8 @@ export function collectBoxes(world, env) {
       }
     }
     if (winner !== null) {
-      winner.score += boxPoints;
+      // Solo las Cajas de puntos suman; los potenciadores dan un efecto (lo aplica game.js).
+      if (box.kind === "puntos") winner.score += boxPoints;
       world.boxes.delete(boxId);
       picked.push({ tankId: winner.id, kind: box.kind });
     }

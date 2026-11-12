@@ -33,6 +33,7 @@ function toTankState(t) {
     dead: t.dead,
     bot: t.isBot,
     inv: !!t.inv,
+    shield: !!t.shield,
     effects: t.effects.map((e) => ({ name: e.name, remainingMs: e.remainingMs })),
   };
 }

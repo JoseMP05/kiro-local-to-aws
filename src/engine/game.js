@@ -12,6 +12,7 @@ import { resolveNick } from "./nicknames.js";
 import { computeRanking } from "./ranking.js";
 import { createEffectSystem } from "../effects/effect-system.js";
 import { createSlowEffect } from "../effects/builtin/slow.js";
+import { createTurboEffect } from "../effects/builtin/turbo.js";
 
 /**
  * Crea una partida.
@@ -50,6 +51,9 @@ export function createGame({ config, rng, bots, log }) {
 
   // Definición del Efecto_Ralentizar propia de esta partida.
   const slowDef = createSlowEffect({ factor: config.effects.slow.factor });
+
+  const turboDef = createTurboEffect({ factor: config.effects.turbo.factor });
+  const shieldTicks = Math.max(1, Math.round((config.effects.shield.durationMs * config.tick.rate) / 1000));
 
   // Dimensiones y parámetros usados en varias fases.
   const arenaW = config.arena.width;
@@ -249,6 +253,7 @@ export function createGame({ config, rng, bots, log }) {
     });
     for (const ev of picked) {
       result.boxPicked.push(ev);
+      applyPowerup(ev);
       if (config.debug) {
         // Elegir un Tanque activo distinto, ordenados por joinSeq.
         const candidates = [];
@@ -320,7 +325,7 @@ export function createGame({ config, rng, bots, log }) {
         tick: world.tick, tickRate: config.tick.rate, boxMax: config.boxes.max,
         boxIntervalS: config.boxes.intervalS, boxSize: config.boxes.size,
         boxMaxAttempts: config.boxes.maxAttempts, arenaW, arenaH,
-        obstacles: world.obstacles, tankSize,
+        obstacles: world.obstacles, tankSize, powerupChance: config.boxes.powerupChance,
       },
       rng,
       () => world.nextBoxId++
@@ -338,6 +343,16 @@ export function createGame({ config, rng, bots, log }) {
     for (const b of world.bullets.values()) b.path = null;
 
     return result;
+  }
+
+  // Aplica el potenciador de una Caja recogida (las Cajas de puntos no hacen nada aquí).
+  function applyPowerup(ev) {
+    if (ev.kind === "turbo") {
+      activateEffect(turboDef, ev.tankId, config.effects.turbo.durationMs);
+    } else if (ev.kind === "escudo") {
+      const tank = world.tanks.get(ev.tankId);
+      if (tank && !tank.dead) tank.shieldUntilTick = world.tick + shieldTicks;
+    }
   }
 
   let wasAtMax = false;
@@ -368,6 +383,7 @@ export function createGame({ config, rng, bots, log }) {
         dead: t.dead, deadTick: t.deadTick, deathPos: t.deathPos ? { ...t.deathPos } : null,
         invulnerableUntilTick: t.invulnerableUntilTick,
         inv: t.invulnerableUntilTick >= 0 && world.tick <= t.invulnerableUntilTick,
+        shield: t.shieldUntilTick >= 0 && world.tick <= t.shieldUntilTick,
         respawnTick: t.dead && t.deadTick !== null ? t.deadTick + respawnTicks : null,
         effects: effects.activeFor(t.id),
       });

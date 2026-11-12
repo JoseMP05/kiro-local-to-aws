@@ -84,5 +84,7 @@ export function resolveHits(env) {
 }
 
 function isInvulnerable(tank, tick) {
-  return tank.invulnerableUntilTick >= 0 && tick <= tank.invulnerableUntilTick;
+  const protectedByRespawn = tank.invulnerableUntilTick >= 0 && tick <= tank.invulnerableUntilTick;
+  const shielded = tank.shieldUntilTick >= 0 && tick <= tank.shieldUntilTick;
+  return protectedByRespawn || shielded;
 }

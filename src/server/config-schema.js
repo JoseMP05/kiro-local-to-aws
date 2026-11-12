@@ -69,6 +69,8 @@ export const CONFIG_SCHEMA = {
   "boxes.points": { type: "number", default: 10, min: 0, max: 100000 },
   "boxes.size": { type: "number", default: 30, min: 4, max: 200 },
   "boxes.maxAttempts": { type: "number", default: 20, min: 1, max: 1000, integer: true },
+  // Probabilidad de que una Caja nueva sea un potenciador (turbo o escudo) en vez de puntos.
+  "boxes.powerupChance": { type: "number", default: 0.35, min: 0, max: 1 },
 
   // --- bots ---
   "bots.count": { type: "number", default: 0, min: 0, max: 20, integer: true },
@@ -104,6 +106,9 @@ export const CONFIG_SCHEMA = {
   "effects.speedMultiplierMax": { type: "number", default: 3, min: 0.01, max: 10 },
   "effects.slow.factor": { type: "number", default: 0.5, min: 0.01, max: 10 },
   "effects.slow.durationMs": { type: "number", default: 5000, min: 100, max: 60000, integer: true },
+  "effects.turbo.factor": { type: "number", default: 1.6, min: 0.01, max: 10 },
+  "effects.turbo.durationMs": { type: "number", default: 5000, min: 100, max: 60000, integer: true },
+  "effects.shield.durationMs": { type: "number", default: 5000, min: 100, max: 60000, integer: true },
 
   // --- debug ---
   "debug": { type: "boolean", default: false },

@@ -211,6 +211,20 @@ export function validateConfig(raw) {
     }
   }
 
+  // speedMultiplierMin <= turbo.factor <= speedMultiplierMax.
+  if (
+    Number.isFinite(get("effects.speedMultiplierMin")) &&
+    Number.isFinite(get("effects.speedMultiplierMax")) &&
+    Number.isFinite(get("effects.turbo.factor"))
+  ) {
+    const lo = get("effects.speedMultiplierMin");
+    const hi = get("effects.speedMultiplierMax");
+    const f = get("effects.turbo.factor");
+    if (f < lo || f > hi) {
+      errors.push(`effects.turbo.factor (${f}) debe estar dentro de [${lo}, ${hi}]`);
+    }
+  }
+
   // barrelLength > size/2 + radius.
   if (Number.isFinite(get("tank.barrelLength")) && Number.isFinite(get("tank.size")) && Number.isFinite(get("bullet.radius"))) {
     const needed = get("tank.size") / 2 + get("bullet.radius");

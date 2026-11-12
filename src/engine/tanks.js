@@ -58,6 +58,7 @@ export function createTank(opts) {
     life: 0,
     lastShotTick: null,
     invulnerableUntilTick: -1,
+    shieldUntilTick: -1, // Escudo de potenciador: no se pierde al disparar.
     speedMultiplier: 1,
     lastInput: NEUTRAL_INPUT,
   };
@@ -82,4 +83,5 @@ export function respawnTank(tank, { x, y, tick, maxHealth, protectionTicks }) {
   tank.speedMultiplier = 1;
   tank.lastInput = NEUTRAL_INPUT;
   tank.invulnerableUntilTick = tick + protectionTicks;
+  tank.shieldUntilTick = -1;
 }

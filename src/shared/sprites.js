@@ -151,8 +151,60 @@ export function drawObstacle(ctx, o) {
   ctx.strokeRect(o.x + 1, o.y + 1, o.w - 2, o.h - 2);
 }
 
+const POWERUP_STYLE = {
+  turbo: { body: "#f9a825", dark: "#a66a00", light: "#ffe082", icon: "#fff8e1" },
+  escudo: { body: "#29b6f6", dark: "#0277bd", light: "#b3e5fc", icon: "#e1f5fe" },
+};
+
+/** Caja de potenciador: brilla y muestra un icono (rayo = turbo, escudo = escudo). */
+function drawPowerupCrate(ctx, x, y, size, frame, kind) {
+  const st = POWERUP_STYLE[kind];
+  const s = Math.round(size);
+  const bob = Math.round(Math.sin(frame / 10 + x * 0.01) * 2);
+  const l = Math.round(x - s / 2);
+  const t = Math.round(y - s / 2) + bob;
+
+  // Halo pulsante.
+  const pulse = 0.25 + 0.2 * Math.sin(frame / 8);
+  ctx.fillStyle = `rgba(255,255,255,${pulse.toFixed(2)})`;
+  ctx.fillRect(l - 4, t - 4, s + 8, s + 8);
+
+  ctx.fillStyle = "rgba(0,0,0,0.3)";
+  ctx.fillRect(l + 3, Math.round(y - s / 2) + 4, s, s);
+  ctx.fillStyle = st.body;
+  ctx.fillRect(l, t, s, s);
+  ctx.fillStyle = st.light;
+  ctx.fillRect(l, t, s, 2);
+  ctx.fillStyle = st.dark;
+  ctx.fillRect(l, t + s - 3, s, 3);
+  ctx.strokeStyle = PALETTE.outline;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(l + 1, t + 1, s - 2, s - 2);
+
+  ctx.fillStyle = st.icon;
+  const u = Math.max(2, Math.round(s / 10));
+  const cx = Math.round(x);
+  const cy = Math.round(y) + bob;
+  if (kind === "turbo") {
+    // Rayo en bloques.
+    ctx.fillRect(cx, cy - 4 * u, 2 * u, 3 * u);
+    ctx.fillRect(cx - u, cy - 2 * u, 3 * u, u);
+    ctx.fillRect(cx - 2 * u, cy - u, 3 * u, u);
+    ctx.fillRect(cx - u, cy, 2 * u, 3 * u);
+    ctx.fillRect(cx - u, cy + 2 * u, u, 2 * u);
+  } else {
+    // Escudo en bloques.
+    ctx.fillRect(cx - 3 * u, cy - 3 * u, 6 * u, 4 * u);
+    ctx.fillRect(cx - 2 * u, cy + u, 4 * u, 2 * u);
+    ctx.fillRect(cx - u, cy + 3 * u, 2 * u, u);
+    ctx.fillStyle = st.dark;
+    ctx.fillRect(cx - u, cy - 2 * u, 2 * u, 3 * u);
+  }
+}
+
 /** Caja de madera con una moneda; flota un poco para llamar la atención. */
-export function drawCrate(ctx, x, y, size, frame = 0) {
+export function drawCrate(ctx, x, y, size, frame = 0, kind = "puntos") {
+  if (kind === "turbo" || kind === "escudo") return drawPowerupCrate(ctx, x, y, size, frame, kind);
   const s = Math.round(size);
   const bob = Math.round(Math.sin(frame / 12 + x * 0.01) * 1.5);
   const l = Math.round(x - s / 2);
@@ -325,6 +377,29 @@ export function drawTank(ctx, t, o) {
     ctx.beginPath();
     ctx.arc(x, y, h + 7, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  // Escudo de potenciador: anillo cian continuo (parpadea al acabarse).
+  if (t.shield) {
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.strokeStyle = "#4fc3f7";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(x, y, h + 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Turbo: estela amarilla detrás del tanque.
+  if (t.effects && t.effects.some((e) => e.name === "turbo")) {
+    ctx.save();
+    ctx.fillStyle = "#ffca28";
+    for (let i = 1; i <= 3; i++) {
+      ctx.globalAlpha = 0.6 - i * 0.15;
+      const back = (i * 9) + ((o.frame ?? 0) % 6);
+      ctx.fillRect(Math.round(x - Math.cos(t.angle) * (h + back)) - 3, Math.round(y - Math.sin(t.angle) * (h + back)) - 3, 6, 6);
+    }
     ctx.restore();
   }
 

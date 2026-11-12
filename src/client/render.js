@@ -64,7 +64,7 @@ export function drawFrame(ctx, cam, scene, dpr) {
 
   for (const b of boxes.values()) {
     if (outside(b, vr, margin)) continue;
-    drawCrate(ctx, b.x, b.y, config.boxSize, frame);
+    drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
   }
 
   for (const b of bullets.values()) {
@@ -86,6 +86,8 @@ export function drawFrame(ctx, cam, scene, dpr) {
       frame,
     });
   }
+
+  if (scene.particles) scene.particles.draw(ctx, scene.now ?? 0);
 
   ctx.restore();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

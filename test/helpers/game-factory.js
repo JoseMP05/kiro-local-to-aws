@@ -45,6 +45,7 @@ export function testConfigRaw(overrides = {}) {
       points: { default: 10, min: 0, max: 100000 },
       size: { default: 30, min: 4, max: 200 },
       maxAttempts: { default: 20, min: 1, max: 1000, integer: true },
+      powerupChance: { default: 0, min: 0, max: 1 },
     },
     bots: {
       count: { default: 0, min: 0, max: 20, integer: true },
@@ -80,6 +81,13 @@ export function testConfigRaw(overrides = {}) {
       speedMultiplierMax: { default: 3, min: 0.01, max: 10 },
       slow: {
         factor: { default: 0.5, min: 0.01, max: 10 },
+        durationMs: { default: 5000, min: 100, max: 60000, integer: true },
+      },
+      turbo: {
+        factor: { default: 1.6, min: 0.01, max: 10 },
+        durationMs: { default: 5000, min: 100, max: 60000, integer: true },
+      },
+      shield: {
         durationMs: { default: 5000, min: 100, max: 60000, integer: true },
       },
     },

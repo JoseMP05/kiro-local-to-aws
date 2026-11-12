@@ -6,8 +6,10 @@ import { createStateBuffer } from "/shared/interpolation.js";
 import { createInputSampler } from "./input-sampler.js";
 import { computeCamera, screenToWorld } from "./camera.js";
 import { drawFrame } from "./render.js";
-import { drawHud } from "./hud.js";
+import { drawHud, powerupBadges } from "./hud.js";
 import { drawCrtOverlay } from "/shared/sprites.js";
+import { createParticles } from "/shared/particles.js";
+import { createAudio } from "./audio.js";
 
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
@@ -29,6 +31,9 @@ let lastState = null;
 let lastSendAt = 0;
 let frame = 0;
 let showHelp = true; // panel de controles visible hasta que se pulse H
+const particles = createParticles();
+const audio = createAudio();
+let lastShotSoundAt = 0;
 
 function dpr() {
   return Math.min(window.devicePixelRatio || 1, 2);
@@ -80,6 +85,7 @@ function handleServerMessage(msg) {
     return;
   }
   if (msg.type === "state") {
+    reactToState(lastState, msg.data);
     lastState = msg.data;
     if (buffer) buffer.push(msg.data, performance.now());
     // Foco al morir.
@@ -94,6 +100,26 @@ function handleServerMessage(msg) {
   if (msg.type === "ranking") {
     ranking = msg.data;
   }
+}
+
+// Efectos de sonido y partículas a partir de los cambios entre dos estados.
+function reactToState(prev, next) {
+  const now = performance.now();
+  const myNick = welcome?.nick;
+  let iKilled = false;
+  for (const k of next.kills ?? []) {
+    const victim = prev?.tanks.find((t) => t.nick === k.victim);
+    if (victim) particles.burst(victim.x, victim.y, now);
+    audio.explosion(k.victim === myNick);
+    if (k.killer === myNick && k.victim !== myNick) iKilled = true;
+  }
+  const before = prev?.tanks.find((t) => t.id === ownId);
+  const after = next.tanks.find((t) => t.id === ownId);
+  if (!before || !after || after.dead) return;
+  const gotPowerup =
+    (after.shield && !before.shield) || after.effects.length > before.effects.length;
+  if (gotPowerup) audio.powerup();
+  else if (after.score > before.score && !iKilled) audio.pickup();
 }
 
 // --- Pantallas ---
@@ -136,6 +162,10 @@ window.addEventListener("keydown", (e) => {
     showHelp = !showHelp;
     return;
   }
+  if (e.code === "KeyM" && !e.repeat) {
+    audio.toggleMute();
+    return;
+  }
   const k = KEYMAP[e.code];
   if (k) {
     sampler.setKey(k, true);
@@ -168,6 +198,10 @@ function startSendLoop(tickRate) {
     if (now - lastSendAt < interval) return;
     const input = sampler.flush();
     if (input) {
+      if (input.fire && now - lastShotSoundAt > 500) {
+        audio.shot();
+        lastShotSoundAt = now;
+      }
       ws.send(encode({ type: "input", data: input }));
       lastSendAt = now;
     }
@@ -206,6 +240,8 @@ function draw() {
       ownId,
       config: welcome.config,
       frame,
+      particles,
+      now: performance.now(),
     }, dpr());
 
     const screen = { w: window.innerWidth, h: window.innerHeight };
@@ -224,6 +260,7 @@ function draw() {
       estimatedTick,
       tickRate: welcome.config.tickRate,
       showHelp,
+      badges: powerupBadges(ownState),
       minimap: {
         arena: { w: welcome.arena.width, h: welcome.arena.height },
         obstacles: welcome.obstacles,

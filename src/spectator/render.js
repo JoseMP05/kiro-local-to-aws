@@ -42,7 +42,7 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
 
   drawGround(ctx, arena.width, arena.height);
   for (const o of obstacles) drawObstacle(ctx, o);
-  for (const b of boxes.values()) drawCrate(ctx, b.x, b.y, config.boxSize, frame);
+  for (const b of boxes.values()) drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
   for (const b of bullets.values()) drawBullet(ctx, b.x, b.y, config.bulletRadius);
 
   // Etiquetas de unos 13 px en pantalla, con la escala que tenga la Arena.
@@ -60,6 +60,8 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
       frame,
     });
   }
+
+  if (scene.particles) scene.particles.draw(ctx, scene.now ?? 0);
 
   ctx.restore();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
