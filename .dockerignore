@@ -1,0 +1,13 @@
+node_modules
+.git
+.kiro
+.atl
+test
+scripts
+infra
+docs
+*.md
+Dockerfile
+.dockerignore
+.env*
+*.log

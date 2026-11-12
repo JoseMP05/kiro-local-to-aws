@@ -11,8 +11,9 @@
  * @param {(fn: () => void, ms: number) => any} [opts.setTimeoutFn]
  * @param {(msg: string) => void} [opts.log]
  * @param {() => void} [opts.onFatal] se llama tras 10 fallos seguidos
+ * @param {(ms: number) => void} [opts.onTickDuration] duración de cada Tick (simulación + envío)
  */
-export function createTickLoop({ game, gateway, tickRate, nowFn, setTimeoutFn = setTimeout, log = () => {}, onFatal }) {
+export function createTickLoop({ game, gateway, tickRate, nowFn, setTimeoutFn = setTimeout, log = () => {}, onFatal, onTickDuration }) {
   const now = nowFn ?? (() => performance.now());
   const dt = 1000 / tickRate; // ms por Tick
   const MAX_CATCHUP = 5;
@@ -22,8 +23,10 @@ export function createTickLoop({ game, gateway, tickRate, nowFn, setTimeoutFn = 
   let running = false;
 
   function runOneTick() {
+    const t0 = now();
     const result = game.step();
     gateway.afterStep(result);
+    onTickDuration?.(now() - t0);
   }
 
   function schedule() {

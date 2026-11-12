@@ -8,12 +8,14 @@
   },
   "scripts": {
     "start": "node src/server/main.js",
-    "test": "node --test \"test/**/*.test.js\""
+    "test": "node --test \"test/**/*.test.js\"",
+    "loadtest": "node scripts/loadtest.js"
   },
   "dependencies": {
     "ws": "^8.18.0"
   },
   "devDependencies": {
     "fast-check": "^3.23.1"
-  }
+  },
+  "packageManager": "pnpm@11.25.0"
 }
