@@ -13,6 +13,7 @@ import { computeRanking } from "./ranking.js";
 import { createEffectSystem } from "../effects/effect-system.js";
 import { createSlowEffect } from "../effects/builtin/slow.js";
 import { createTurboEffect } from "../effects/builtin/turbo.js";
+import { createNitroEffect } from "../effects/builtin/nitro.js";
 
 /**
  * Crea una partida.
@@ -53,6 +54,7 @@ export function createGame({ config, rng, bots, log }) {
   const slowDef = createSlowEffect({ factor: config.effects.slow.factor });
 
   const turboDef = createTurboEffect({ factor: config.effects.turbo.factor });
+  const nitroDef = createNitroEffect();
   const shieldTicks = Math.max(1, Math.round((config.effects.shield.durationMs * config.tick.rate) / 1000));
 
   // Dimensiones y parámetros usados en varias fases.
