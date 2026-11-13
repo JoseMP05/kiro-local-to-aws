@@ -46,3 +46,6 @@ cdk.out/
 
 # Local AI tooling cache
 .atl/
+
+# Salidas locales de cdk deploy
+infra/cdk-outputs.json

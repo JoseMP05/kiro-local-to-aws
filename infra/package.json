@@ -1,0 +1,24 @@
+{
+  "name": "tank-game-infra",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Infraestructura de referencia en AWS (CDK) para el juego de tanques",
+  "scripts": {
+    "synth": "cdk synth --strict",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --require-approval never",
+    "destroy": "cdk destroy --force",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "aws-cdk": "2.1148.1",
+    "tsx": "^4.19.0",
+    "typescript": "~5.8.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.276.0",
+    "constructs": "^10.4.2"
+  }
+}

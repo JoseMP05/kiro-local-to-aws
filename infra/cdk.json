@@ -1,0 +1,7 @@
+{
+  "app": "npx tsx bin/app.ts",
+  "context": {
+    "stackName": "TankGameRef",
+    "cloudFrontPrefixListId": "pl-3b927c52"
+  }
+}
