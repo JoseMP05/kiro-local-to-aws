@@ -1,0 +1,57 @@
+# Revisión automática de cada PR con Claude Haiku en Amazon Bedrock.
+#
+# Usa pull_request_target para que funcione con PRs de forks (el público de la
+# charla). Por seguridad:
+# - NUNCA hace checkout ni ejecuta el código del PR: lee el diff por la API.
+# - El script y las reglas se toman de la rama base (main).
+# - El rol de AWS solo puede invocar modelos Claude Haiku; no despliega nada.
+name: Revisión automática
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+  REVIEW_ROLE: arn:aws:iam::661443221249:role/tank-game-gh-pr-review
+  MODEL_ID: ${{ vars.REVIEW_MODEL_ID || 'us.anthropic.claude-haiku-4-5-20251001-v1:0' }}
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Script y reglas de la rama base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          sparse-checkout: .github
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Credenciales temporales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.REVIEW_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: pr-review-${{ github.event.pull_request.number }}
+
+      - name: Revisar el PR y comentar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node .github/scripts/pr-review.mjs
