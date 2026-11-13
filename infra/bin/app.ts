@@ -27,5 +27,7 @@ const ci = new CiStack(app, "TankGameCi", {
   env,
   description: "Roles OIDC de GitHub Actions para desplegar y revisar PRs del juego de tanques",
   githubRepo: app.node.tryGetContext("githubRepo") ?? "JoseMP05/kiro-local-to-aws",
+  githubSubPrefix:
+    app.node.tryGetContext("githubSubPrefix") ?? "repo:JoseMP05@87217012/kiro-local-to-aws@1453512857",
 });
 Tags.of(ci).add("proyecto", "kiro-local-to-aws");

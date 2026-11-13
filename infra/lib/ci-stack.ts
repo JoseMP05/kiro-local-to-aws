@@ -14,14 +14,23 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import type { Construct } from "constructs";
 
 export interface CiStackProps extends StackProps {
-  /** Repositorio de GitHub, "propietario/nombre". */
+  /** Repositorio de GitHub, "propietario/nombre" (solo para descripciones). */
   githubRepo: string;
+  /**
+   * Prefijo del claim "sub" que GitHub pone en el token OIDC del repositorio.
+   * Este repo usa el formato inmutable, con los ID numéricos del dueño y del
+   * repo ("repo:dueño@id/nombre@id"): si alguien borra el repo y crea otro con
+   * el mismo nombre, no hereda el acceso. Se consulta con
+   * `gh api repos/<dueño>/<repo>/actions/oidc/customization/sub`.
+   */
+  githubSubPrefix: string;
 }
 
 export class CiStack extends Stack {
   constructor(scope: Construct, id: string, props: CiStackProps) {
     super(scope, id, props);
     const repo = props.githubRepo;
+    const sub = props.githubSubPrefix;
 
     const provider = new iam.OidcProviderNative(this, "GitHubOidc", {
       url: "https://token.actions.githubusercontent.com",
@@ -38,7 +47,7 @@ export class CiStack extends Stack {
     const deployRole = new iam.Role(this, "DeployRole", {
       roleName: "tank-game-gh-deploy",
       description: `GitHub Actions (${repo}, rama main) despliega con CDK`,
-      assumedBy: principal(`repo:${repo}:ref:refs/heads/main`, "StringEquals"),
+      assumedBy: principal(`${sub}:ref:refs/heads/main`, "StringEquals"),
     });
     deployRole.addToPolicy(
       new iam.PolicyStatement({
@@ -59,7 +68,7 @@ export class CiStack extends Stack {
     const reviewRole = new iam.Role(this, "PrReviewRole", {
       roleName: "tank-game-gh-pr-review",
       description: `GitHub Actions (${repo}) revisa PRs con Claude Haiku en Bedrock`,
-      assumedBy: principal(`repo:${repo}:*`, "StringLike"),
+      assumedBy: principal(`${sub}:*`, "StringLike"),
     });
     reviewRole.addToPolicy(
       new iam.PolicyStatement({
