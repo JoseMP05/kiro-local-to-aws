@@ -1,0 +1,109 @@
+# Cada merge a main se despliega en el entorno de la charla.
+#
+# De dónde sale la infraestructura:
+# - Si main ya tiene infra/ (la que genera Kiro en vivo), usa esa y el stack
+#   TankGameLive.
+# - Si no, toma infra/ de la rama referencia-aws y despliega TankGameRef.
+# Las variables del repositorio DEPLOY_STACK e INFRA_REF fuerzan otra opción.
+name: Desplegar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-produccion
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  DEPLOY_ROLE: arn:aws:iam::661443221249:role/tank-game-gh-deploy
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Sin "environment:": cambiaría el claim sub del token OIDC y el rol
+    # tank-game-gh-deploy (que exige ref:refs/heads/main) lo rechazaría.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Elegir infraestructura y stack
+        id: target
+        run: |
+          if [ -n "${{ vars.DEPLOY_STACK }}" ]; then
+            stack="${{ vars.DEPLOY_STACK }}"
+          elif [ -f infra/cdk.json ]; then
+            stack="TankGameLive"
+          else
+            stack="TankGameRef"
+          fi
+          if [ -f infra/cdk.json ] && [ -z "${{ vars.INFRA_REF }}" ]; then
+            source="main"
+          else
+            source="${{ vars.INFRA_REF || 'referencia-aws' }}"
+          fi
+          echo "stack=$stack" >> "$GITHUB_OUTPUT"
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+          echo "Stack: $stack · infraestructura desde: $source"
+
+      - name: Traer infra/ desde ${{ steps.target.outputs.source }}
+        if: steps.target.outputs.source != 'main'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.target.outputs.source }}
+          path: .infra-src
+          sparse-checkout: infra
+          persist-credentials: false
+
+      - name: Colocar infra/ junto al código del juego
+        if: steps.target.outputs.source != 'main'
+        run: |
+          rm -rf infra
+          mv .infra-src/infra infra
+          rm -rf .infra-src
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Credenciales temporales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: deploy-${{ github.run_id }}
+
+      - name: cdk deploy ${{ steps.target.outputs.stack }}
+        working-directory: infra
+        run: |
+          npm ci
+          npx cdk deploy "${{ steps.target.outputs.stack }}" --require-approval never --outputs-file cdk-outputs.json
+
+      - name: Comprobar /health
+        id: smoke
+        working-directory: infra
+        run: |
+          url=$(node -e "const o=require('./cdk-outputs.json'); console.log(Object.values(o)[0].GameUrl)")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          for i in $(seq 1 20); do
+            if curl -fsS "${url}health"; then echo; break; fi
+            echo "Esperando a la tarea nueva ($i)..."; sleep 10
+          done
+          curl -fsS "${url}health" > /dev/null
+          {
+            echo "### Desplegado en ${{ steps.target.outputs.stack }}"
+            echo ""
+            echo "- Juego: ${url}"
+            echo "- Espectador: ${url}espectador"
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
