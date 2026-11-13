@@ -533,7 +533,8 @@ aws ecs describe-services --cluster TankGameRef-ClusterEB0386A7-HWH1bdofGoey --s
             <div class="prompt-bar"><span>Roles OIDC en AWS (ya desplegado)</span><button class="copy" type="button">Copiar</button></div>
 <pre class="cmd">git switch referencia-aws && cd infra
 npx cdk deploy TankGameCi --require-approval never
-# tank-game-gh-deploy     → solo repo:JoseMP05/kiro-local-to-aws:ref:refs/heads/main
+# tank-game-gh-deploy     → solo repo:JoseMP05@87217012/kiro-local-to-aws@1453512857:ref:refs/heads/main
+#                            (formato inmutable de GitHub, con los ID del dueño y del repo)
 # tank-game-gh-pr-review  → solo bedrock:InvokeModel sobre Claude Haiku</pre>
           </div>
           <p>Después, alguien con permiso de escritura en el repositorio sube <code>.github/</code> a <code>main</code>. Para subir workflows, el token de <code>gh</code> necesita el permiso <code>workflow</code>: <code>gh auth refresh -s workflow</code>.</p>
