@@ -35,13 +35,17 @@ npm test
 
 ### Cómo se juega
 
-- Cada tanque tiene 3 de vida. Las balas rebotan hasta 3 veces, y también te dañan a ti.
-- Eliminar a otro tanque suma puntos (bonus extra si es el líder). Al morir pierdes la mitad de tus puntos y reapareces a los 3 segundos con 2 segundos de protección.
+- Cada tanque tiene 6 de vida. Si tienes puntos y estás en el top 10, tienes vida extra: +3 si eres el líder, +2 en 2.º y 3.º puesto, +1 del 4.º al 10.º. Los tanques con vida extra muestran la barra con borde dorado.
+- Puedes disparar cada 0,3 s y tener hasta 5 balas en el aire. Las balas duran 3 s, rebotan hasta 3 veces y también te dañan a ti.
+- Eliminar a otro tanque suma puntos (bonus extra si es el líder). Al morir pierdes la cuarta parte de tus puntos y reapareces a los 3 segundos con 2 segundos de protección.
+- Las eliminaciones seguidas forman una racha: a las 3, 5 y cada 5 más se anuncia en pantalla.
 - Las cajas aparecen en el mapa:
   - **Caja de madera con moneda**: suma puntos.
   - **Caja amarilla con rayo (turbo)**: 5 segundos de velocidad aumentada.
   - **Caja azul con escudo**: 5 segundos sin recibir daño, y disparar no lo pierde.
-- Hay 3 bots para que la arena no se vea vacía. No aparecen en el ranking.
+  - **Caja blanca con cruz roja (botiquín)**: recupera 3 de vida, sin pasar de tu máximo.
+- El mapa es simétrico, con búnkeres en las esquinas, muros de ladrillo, bloques de acero, losas de hormigón y una plaza central. Los obstáculos se configuran en `config.json`. El suelo (caminos, cráteres, vegetación) es solo decorativo y se genera en el navegador.
+- Hay bots para que la arena no se vea vacía. No aparecen en el ranking.
 
 ## Configuración
 
@@ -65,16 +69,36 @@ Datos que necesita quien despliegue el juego:
 - **Latido de WebSocket:** el servidor envía un ping cada 10 s, así que las conexiones no quedan inactivas ante el timeout de un balanceador (por ejemplo, los 60 s por defecto de un ALB).
 - **Apagado ordenado:** responde a `SIGTERM` cerrando conexiones y saliendo con código 0.
 - **Imagen Docker:** `docker build -t tank-game .` y `docker run -p 3000:3000 tank-game`. Corre como usuario sin privilegios e incluye `HEALTHCHECK`.
-- **Recursos:** ver la sección siguiente. Con 100 jugadores el servidor usa un solo hilo de CPU y unos 95 KiB/s de salida por jugador.
+- **Recursos:** ver la sección siguiente. Con 100 jugadores el servidor usa un solo hilo de CPU y unos 95 KiB/s de salida por jugador. Con 70 jugadores y 20 bots, el tick medio medido en local fue de 9,4 ms (presupuesto 33 ms) y unos 85 KiB/s por jugador.
 
 ## Prueba de carga
 
 El script `scripts/loadtest.js` conecta jugadores simulados que se mueven y disparan, y mide lo que recibe cada cliente.
 
+Para la prueba de estrés en local, arranca el servidor en una terminal y lanza la carga en otra:
+
 ```bash
-npm run loadtest -- --url ws://localhost:3000 --players 100 --spectators 3 --duration 30 --ramp 10
-npm run loadtest -- --url wss://tu-dominio --players 100        # contra producción
+# Terminal 1: servidor
+npm start
+
+# Terminal 2: 70 jugadores y 2 espectadores durante 30 s (escenario esperado de la charla)
+npm run loadtest -- --url ws://localhost:3000 --players 70 --spectators 2 --duration 30 --ramp 10
 ```
+
+Otros escenarios:
+
+```bash
+npm run loadtest -- --url ws://localhost:3000 --players 100 --spectators 3 --duration 30 --ramp 10   # máximo de jugadores
+npm run loadtest -- --url wss://tu-dominio --players 70                                               # contra producción
+```
+
+| Opción | Por defecto | Descripción |
+| --- | --- | --- |
+| `--url` | `ws://localhost:3000` | URL base del servidor (`ws://` o `wss://`) |
+| `--players` | `50` | Jugadores simulados |
+| `--spectators` | `1` | Espectadores simulados |
+| `--duration` | `30` | Segundos de carga sostenida tras la rampa |
+| `--ramp` | `5` | Segundos para ir conectando a los jugadores de forma escalonada |
 
 Imprime conexiones, tiempo hasta entrar, intervalo entre estados (p50, p95, p99), ancho de banda por cliente y los tiempos de Tick del servidor, y termina con código distinto de 0 si algún criterio falla. Conviene ejecutarlo desde una máquina distinta al servidor para que no compitan por la CPU.
 

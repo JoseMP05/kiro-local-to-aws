@@ -75,7 +75,8 @@ test("Property 12: invariantes del mundo tras cada Tick", () => {
           if (t.dead) continue;
           assert.ok(t.x >= half - 1e-6 && t.x <= v.arena.width - half + 1e-6, "Tanque en X");
           assert.ok(t.y >= half - 1e-6 && t.y <= v.arena.height - half + 1e-6, "Tanque en Y");
-          assert.ok(t.hp >= 0 && t.hp <= config.tank.maxHealth);
+          assert.ok(t.hp >= 0 && t.hp <= t.maxHp, "vida dentro de [0, maxHp]");
+          assert.ok(t.maxHp >= config.tank.maxHealth, "maxHp nunca por debajo de la base");
           assert.ok(Number.isInteger(t.score) && t.score >= 0);
           for (const o of v.obstacles) {
             assert.ok(!aabbOverlap(squareAabb(t.x, t.y, config.tank.size), o), "sin solape con Obstáculo");

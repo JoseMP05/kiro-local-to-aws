@@ -23,7 +23,7 @@ export function spectatorTransform(vw, vh, W, H) {
 /**
  * Dibuja un cuadro de espectador.
  * @param {CanvasRenderingContext2D} ctx
- * @param {object} scene { arena, obstacles, tanks, bullets, boxes, config, ranking, killFeed, frame }
+ * @param {object} scene { arena, obstacles, tanks, bullets, boxes, config, ranking, killFeed, banner, frame }
  * @param {{ w: number, h: number }} screen px CSS
  * @param {number} dpr
  */
@@ -68,6 +68,7 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
 
   drawCrtOverlay(ctx, screen.w, screen.h);
   drawOutlinedText(ctx, "● EN VIVO", screen.w / 2, 14, { px: 18, color: "#ef5350" });
+  if (scene.banner) drawOutlinedText(ctx, scene.banner, screen.w / 2, 48, { px: 36, color: "#ff9800" });
   if (scene.ranking) drawRankingPanel(ctx, scene.ranking);
   if (scene.killFeed) drawKillFeed(ctx, scene.killFeed, screen);
 }
@@ -121,8 +122,10 @@ function drawKillFeed(ctx, feed, screen) {
   const pad = 12;
   ctx.font = `bold ${px}px ${RETRO_FONT}`;
   let w = 0;
-  const texts = feed.map((it) => ({ killer: it.killer ?? "?", victim: it.victim }));
-  for (const t of texts) w = Math.max(w, ctx.measureText(`${t.killer} ► ${t.victim}`).width);
+  const texts = feed.map((it) => ({
+    killer: it.killer ?? "?", victim: it.victim, streak: it.streak >= 3 ? ` ×${it.streak}` : "",
+  }));
+  for (const t of texts) w = Math.max(w, ctx.measureText(`${t.killer} ► ${t.victim}${t.streak}`).width);
   w = Math.ceil(w) + pad * 2;
   const h = pad * 2 + texts.length * lineH - 12;
   const x = screen.w - w - 24;
@@ -142,6 +145,11 @@ function drawKillFeed(ctx, feed, screen) {
     lx += ctx.measureText(" ► ").width;
     ctx.fillStyle = PALETTE.text;
     ctx.fillText(t.victim, lx, ly);
+    if (t.streak) {
+      lx += ctx.measureText(t.victim).width;
+      ctx.fillStyle = "#ff9800";
+      ctx.fillText(t.streak, lx, ly);
+    }
     ly += lineH;
   }
 }

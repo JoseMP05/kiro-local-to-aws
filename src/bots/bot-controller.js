@@ -37,10 +37,20 @@ export function createBotController({ config, rng }) {
     }
   }
 
+  // Destino al azar fuera de los Obstáculos (unos pocos intentos; si fallan
+  // todos, se usa el último y el tiempo límite lo renovará).
   function pickTarget(view) {
     const W = view.arena.width, H = view.arena.height;
-    const x = half + rng() * (W - 2 * half);
-    const y = half + rng() * (H - 2 * half);
+    let x = 0, y = 0;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      x = half + rng() * (W - 2 * half);
+      y = half + rng() * (H - 2 * half);
+      const box = squareAabb(x, y, tankSize);
+      const blocked = view.obstacles.some(
+        (o) => box.x < o.x + o.w && box.x + box.w > o.x && box.y < o.y + o.h && box.y + box.h > o.y
+      );
+      if (!blocked) break;
+    }
     return { x, y };
   }
 

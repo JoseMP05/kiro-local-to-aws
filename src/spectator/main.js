@@ -3,7 +3,7 @@
 import { decode } from "/shared/protocol.js";
 import { createStateBuffer } from "/shared/interpolation.js";
 import { drawSpectatorFrame } from "./render.js";
-import { createKillFeed } from "./kill-feed.js";
+import { createKillFeed, streakMilestone } from "/shared/kill-feed.js";
 import { createParticles } from "/shared/particles.js";
 
 const canvas = document.getElementById("spectator-canvas");
@@ -17,6 +17,8 @@ let ranking = null;
 const killFeed = createKillFeed();
 const particles = createParticles();
 let lastTanks = new Map();
+let lastTanksById = new Map();
+let banner = null; // { text, until }: anuncio de racha
 let frame = 0;
 
 function dpr() {
@@ -71,12 +73,21 @@ function handle(msg) {
   }
   if (msg.type === "state") {
     if (buffer) buffer.push(msg.data, performance.now());
+    const now = performance.now();
     for (const k of msg.data.kills ?? []) {
-      killFeed.add(k.victim, k.killer, performance.now());
+      killFeed.add(k.victim, k.killer, now, k.streak ?? 0);
       const v = lastTanks.get(k.victim);
-      if (v) particles.burst(v.x, v.y, performance.now(), { count: 28 });
+      if (v) particles.burst(v.x, v.y, now, { count: 28 });
+      const label = streakMilestone(k.streak);
+      if (label && k.killer) banner = { text: `${k.killer}: ${label}`, until: now + 3000 };
+    }
+    // Chispas en cada Tanque que perdió vida sin morir.
+    for (const t of msg.data.tanks) {
+      const b = lastTanksById.get(t.id);
+      if (b && !b.dead && !t.dead && t.hp < b.hp) particles.sparks(t.x, t.y, now);
     }
     lastTanks = new Map(msg.data.tanks.map((t) => [t.nick, t]));
+    lastTanksById = new Map(msg.data.tanks.map((t) => [t.id, t]));
     return;
   }
   if (msg.type === "ranking") {
@@ -100,6 +111,7 @@ function draw() {
       particles,
       now: performance.now(),
       killFeed: killFeed.active(performance.now()),
+      banner: banner && performance.now() < banner.until ? banner.text : null,
     }, { w: window.innerWidth, h: window.innerHeight }, dpr());
   }
   requestAnimationFrame(draw);

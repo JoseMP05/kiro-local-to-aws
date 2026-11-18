@@ -10,6 +10,7 @@ import { trySpawnBox, collectBoxes } from "./boxes.js";
 import { findSafePoint } from "./spawn.js";
 import { resolveNick } from "./nicknames.js";
 import { computeRanking } from "./ranking.js";
+import { rankHealthBonus, setMaxHealth } from "./health.js";
 import { createEffectSystem } from "../effects/effect-system.js";
 import { createSlowEffect } from "../effects/builtin/slow.js";
 import { createTurboEffect } from "../effects/builtin/turbo.js";
@@ -191,7 +192,7 @@ export function createGame({ config, rng, bots, log }) {
           x: point.x,
           y: point.y,
           tick: world.tick,
-          maxHealth: config.tank.maxHealth,
+          maxHealth: t.maxHp, // calculada al cerrar el Tick anterior
           protectionTicks,
         });
       }
@@ -336,6 +337,7 @@ export function createGame({ config, rng, bots, log }) {
 
     // Fase 16: cierre.
     world.ranking = computeRanking(rankingTanks(), { botsInRanking: config.bots.inRanking });
+    updateMaxHealth();
     result.tick = world.tick;
     world.tick += 1;
 
@@ -352,6 +354,19 @@ export function createGame({ config, rng, bots, log }) {
     } else if (ev.kind === "escudo") {
       const tank = world.tanks.get(ev.tankId);
       if (tank && !tank.dead) tank.shieldUntilTick = world.tick + shieldTicks;
+    } else if (ev.kind === "botiquin") {
+      const tank = world.tanks.get(ev.tankId);
+      if (tank && !tank.dead) tank.hp = Math.min(tank.maxHp, tank.hp + config.boxes.healAmount);
+    }
+  }
+
+  // Vida máxima de cada Tanque: base + bono según su posición en el Ranking.
+  function updateMaxHealth() {
+    const positions = new Map();
+    for (const e of world.ranking.tables[0].entries) positions.set(e.id, e.position);
+    for (const t of world.tanks.values()) {
+      const bonus = rankHealthBonus(positions.get(t.id) ?? null, t.score, config.tank.rankHealth);
+      setMaxHealth(t, config.tank.maxHealth + bonus);
     }
   }
 
@@ -379,7 +394,7 @@ export function createGame({ config, rng, bots, log }) {
     for (const t of world.tanks.values()) {
       tanks.push({
         id: t.id, joinSeq: t.joinSeq, isBot: t.isBot, targetId: t.targetId,
-        nick: t.nick, x: t.x, y: t.y, angle: t.angle, hp: t.hp, score: t.score,
+        nick: t.nick, x: t.x, y: t.y, angle: t.angle, hp: t.hp, maxHp: t.maxHp, score: t.score,
         dead: t.dead, deadTick: t.deadTick, deathPos: t.deathPos ? { ...t.deathPos } : null,
         invulnerableUntilTick: t.invulnerableUntilTick,
         inv: t.invulnerableUntilTick >= 0 && world.tick <= t.invulnerableUntilTick,

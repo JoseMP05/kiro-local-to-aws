@@ -29,6 +29,7 @@ function toTankState(t) {
     y: round(t.y, 1),
     angle: round(t.angle, 3),
     hp: t.hp,
+    maxHp: t.maxHp,
     score: t.score,
     dead: t.dead,
     bot: t.isBot,
@@ -36,6 +37,11 @@ function toTankState(t) {
     shield: !!t.shield,
     effects: t.effects.map((e) => ({ name: e.name, remainingMs: e.remainingMs })),
   };
+}
+
+/** Evento de eliminación: víctima, autor y racha del autor. */
+function toKillState(k) {
+  return { victim: k.victimNick, killer: k.killerNick, streak: k.streak ?? 0 };
 }
 
 function inRect(x, y, rect) {
@@ -93,7 +99,7 @@ export function buildPlayerState(view, tankId, cfg, kills = []) {
     tanks,
     bullets,
     boxes,
-    kills: kills.map((k) => ({ victim: k.victimNick, killer: k.killerNick })),
+    kills: kills.map(toKillState),
   };
 }
 
@@ -107,7 +113,7 @@ export function buildSpectatorState(view, cfg, kills = []) {
     tanks,
     bullets,
     boxes,
-    kills: kills.map((k) => ({ victim: k.victimNick, killer: k.killerNick })),
+    kills: kills.map(toKillState),
   };
 }
 

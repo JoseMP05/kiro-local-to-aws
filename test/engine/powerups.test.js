@@ -62,7 +62,7 @@ test("con powerupChance 1 todas las Cajas nuevas son potenciadores", () => {
   advance(game, 200);
   const kinds = [...game._world.boxes.values()].map((b) => b.kind);
   assert.ok(kinds.length > 0);
-  assert.ok(kinds.every((k) => k === "turbo" || k === "escudo"), kinds.join(","));
+  assert.ok(kinds.every((k) => k === "turbo" || k === "escudo" || k === "botiquin"), kinds.join(","));
 });
 
 test("con powerupChance 0 todas las Cajas nuevas son de puntos", () => {

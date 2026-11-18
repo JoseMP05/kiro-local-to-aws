@@ -51,6 +51,8 @@ export function createTank(opts) {
     y,
     angle: 0,
     hp: maxHealth,
+    maxHp: maxHealth, // vida máxima actual (base + bono por Ranking)
+    streak: 0, // eliminaciones seguidas desde la última reaparición
     score: 0,
     dead: false,
     deadTick: null,
@@ -66,7 +68,7 @@ export function createTank(opts) {
 
 /**
  * Reaparece un Tanque eliminado. Conserva id, Apodo, joinSeq, targetId y
- * puntos. Restaura vida máxima, incrementa `life`, limpia el disparo y fija la
+ * puntos. Restaura la vida máxima recibida (base + bono por Ranking), reinicia la racha, incrementa `life`, limpia el disparo y fija la
  * invulnerabilidad por tiempo.
  * @param {object} tank
  * @param {object} opts { x, y, tick, maxHealth, protectionTicks }
@@ -75,6 +77,8 @@ export function respawnTank(tank, { x, y, tick, maxHealth, protectionTicks }) {
   tank.x = x;
   tank.y = y;
   tank.hp = maxHealth;
+  tank.maxHp = maxHealth;
+  tank.streak = 0;
   tank.dead = false;
   tank.deadTick = null;
   tank.deathPos = null;

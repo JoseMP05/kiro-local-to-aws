@@ -10,6 +10,7 @@ import { drawHud, powerupBadges } from "./hud.js";
 import { drawCrtOverlay } from "/shared/sprites.js";
 import { createParticles } from "/shared/particles.js";
 import { createAudio } from "./audio.js";
+import { createKillFeed, streakMilestone } from "/shared/kill-feed.js";
 
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
@@ -33,7 +34,12 @@ let frame = 0;
 let showHelp = true; // panel de controles visible hasta que se pulse H
 const particles = createParticles();
 const audio = createAudio();
+const killFeed = createKillFeed();
 let lastShotSoundAt = 0;
+let hitFlashAt = -Infinity; // último daño recibido (para el borde rojo)
+let banner = null; // { text, color, until }: anuncio de racha propia
+const HIT_FLASH_MS = 350;
+const BANNER_MS = 2200;
 
 function dpr() {
   return Math.min(window.devicePixelRatio || 1, 2);
@@ -102,23 +108,55 @@ function handleServerMessage(msg) {
   }
 }
 
-// Efectos de sonido y partículas a partir de los cambios entre dos estados.
+// Efectos de sonido, partículas y avisos a partir de los cambios entre dos estados.
 function reactToState(prev, next) {
   const now = performance.now();
   const myNick = welcome?.nick;
   let iKilled = false;
   for (const k of next.kills ?? []) {
+    killFeed.add(k.victim, k.killer, now, k.streak ?? 0);
     const victim = prev?.tanks.find((t) => t.nick === k.victim);
     if (victim) particles.burst(victim.x, victim.y, now);
     audio.explosion(k.victim === myNick);
-    if (k.killer === myNick && k.victim !== myNick) iKilled = true;
+    if (k.killer === myNick && k.victim !== myNick) {
+      iKilled = true;
+      const label = streakMilestone(k.streak);
+      if (label) {
+        banner = { text: label, color: "#ff9800", until: now + BANNER_MS };
+        audio.streak();
+      }
+    }
   }
+
+  // Impactos y curaciones: diferencia de vida de cada Tanque entre estados.
+  let healed = false;
+  if (prev) {
+    const prevById = new Map(prev.tanks.map((t) => [t.id, t]));
+    for (const t of next.tanks) {
+      const b = prevById.get(t.id);
+      if (!b || b.dead || t.dead) continue;
+      const diff = t.hp - b.hp;
+      if (diff < 0) {
+        particles.sparks(t.x, t.y, now);
+        particles.text(t.x, t.y - 32, String(diff), now, { color: "#ff5252" });
+        if (t.id === ownId) {
+          hitFlashAt = now;
+          audio.hit();
+        }
+      } else if (diff > 0) {
+        particles.text(t.x, t.y - 32, `+${diff}`, now, { color: "#69f0ae" });
+        if (t.id === ownId) healed = true;
+      }
+    }
+  }
+
   const before = prev?.tanks.find((t) => t.id === ownId);
   const after = next.tanks.find((t) => t.id === ownId);
-  if (!before || !after || after.dead) return;
+  if (!before || !after || after.dead || before.dead) return;
   const gotPowerup =
     (after.shield && !before.shield) || after.effects.length > before.effects.length;
   if (gotPowerup) audio.powerup();
+  else if (healed) audio.heal();
   else if (after.score > before.score && !iKilled) audio.pickup();
 }
 
@@ -145,6 +183,7 @@ joinForm.addEventListener("submit", (e) => {
 
 rejoinButton.addEventListener("click", () => {
   welcome = null; ownId = null; buffer = null; ranking = null; lastState = null; deathFocus = null;
+  killFeed.clear(); banner = null; hitFlashAt = -Infinity;
   sampler = createInputSampler();
   showJoin();
 });
@@ -198,7 +237,8 @@ function startSendLoop(tickRate) {
     if (now - lastSendAt < interval) return;
     const input = sampler.flush();
     if (input) {
-      if (input.fire && now - lastShotSoundAt > 500) {
+      // Un sonido por recarga como mucho (el servidor no dispara más rápido).
+      if (input.fire && now - lastShotSoundAt > (welcome?.config.reloadMs ?? 500)) {
         audio.shot();
         lastShotSoundAt = now;
       }
@@ -254,8 +294,14 @@ function draw() {
     const self = own
       ? { x: own.x, y: own.y, angle: own.angle, dead: false }
       : deathFocus ? { x: deathFocus.x, y: deathFocus.y, dead: true } : null;
+    const now = performance.now();
+    if (banner && now >= banner.until) banner = null;
     drawHud(ctx, {
       ranking,
+      killFeed: killFeed.active(now),
+      myNick: welcome.nick,
+      banner,
+      hitFlash: Math.max(0, 1 - (now - hitFlashAt) / HIT_FLASH_MS),
       respawnTick,
       estimatedTick,
       tickRate: welcome.config.tickRate,

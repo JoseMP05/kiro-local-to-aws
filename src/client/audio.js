@@ -60,6 +60,16 @@ export function createAudio() {
       tone({ type: "triangle", from: 660, to: 990, ms: 90, volume: 0.07 });
       tone({ type: "triangle", from: 990, to: 1320, ms: 120, volume: 0.07, delayMs: 80 });
     },
+    hit() { tone({ type: "square", from: 180, to: 60, ms: 120, volume: 0.07 }); },
+    heal() {
+      tone({ type: "triangle", from: 440, to: 660, ms: 100, volume: 0.07 });
+      tone({ type: "triangle", from: 660, to: 880, ms: 140, volume: 0.07, delayMs: 90 });
+    },
+    streak() {
+      tone({ type: "square", from: 523, to: 523, ms: 90, volume: 0.06 });
+      tone({ type: "square", from: 659, to: 659, ms: 90, volume: 0.06, delayMs: 100 });
+      tone({ type: "square", from: 784, to: 1046, ms: 220, volume: 0.06, delayMs: 200 });
+    },
     powerup() {
       tone({ type: "sawtooth", from: 300, to: 900, ms: 220, volume: 0.06 });
     },

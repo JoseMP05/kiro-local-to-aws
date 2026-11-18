@@ -45,7 +45,7 @@ export function trySpawnBox(world, env, rng, nextId) {
 }
 
 /** Tipos de Caja que son potenciadores. */
-export const POWERUP_KINDS = ["turbo", "escudo"];
+export const POWERUP_KINDS = ["turbo", "escudo", "botiquin"];
 
 /**
  * Elige el tipo de una Caja nueva. Con probabilidad 0 no consume el rng, de

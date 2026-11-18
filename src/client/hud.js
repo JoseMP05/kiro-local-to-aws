@@ -83,18 +83,79 @@ export const CONTROLS = [
 /**
  * Dibuja todo el HUD.
  * @param {CanvasRenderingContext2D} ctx
- * @param {object} scene { ranking, respawnTick, estimatedTick, tickRate, showHelp, minimap, frame }
+ * @param {object} scene { ranking, respawnTick, estimatedTick, tickRate, showHelp, minimap, frame,
+ *   killFeed, myNick, banner, hitFlash }
  * @param {{ w: number, h: number }} screen tamaño en px CSS
  */
 export function drawHud(ctx, scene, screen) {
   ctx.save();
+  if (scene.hitFlash > 0) drawHitFlash(ctx, scene.hitFlash, screen);
   if (scene.minimap) drawMinimap(ctx, scene.minimap, MARGIN, MARGIN);
   if (scene.ranking) drawRanking(ctx, scene.ranking, screen);
   if (scene.showHelp) drawControls(ctx, screen);
   else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
   if (scene.badges?.length) drawBadges(ctx, scene.badges, screen);
+  if (scene.killFeed?.length) drawKillFeed(ctx, scene.killFeed, scene.myNick, screen);
+  if (scene.banner) drawOutlinedText(ctx, scene.banner.text, screen.w / 2, screen.h * 0.22, { px: 34, color: scene.banner.color });
   ctx.restore();
+}
+
+/** Texto de una línea del aviso de eliminaciones. */
+export function killFeedText(item) {
+  const killer = item.killer ?? "?";
+  const streak = item.streak >= 3 ? ` ×${item.streak}` : "";
+  return `${killer} ► ${item.victim}${streak}`;
+}
+
+// Borde rojo que se desvanece al recibir daño. `alpha` en [0, 1].
+function drawHitFlash(ctx, alpha, screen) {
+  const g = ctx.createRadialGradient(
+    screen.w / 2, screen.h / 2, Math.min(screen.w, screen.h) * 0.3,
+    screen.w / 2, screen.h / 2, Math.max(screen.w, screen.h) * 0.7
+  );
+  g.addColorStop(0, "rgba(229,57,53,0)");
+  g.addColorStop(1, `rgba(229,57,53,${(0.55 * alpha).toFixed(3)})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, screen.w, screen.h);
+}
+
+// Últimas eliminaciones arriba en el centro; las del Jugador van resaltadas.
+function drawKillFeed(ctx, feed, myNick, screen) {
+  setFont(ctx);
+  const lineH = HUD_FONT_PX + 8;
+  const pad = 8;
+  let w = 0;
+  for (const it of feed) w = Math.max(w, ctx.measureText(killFeedText(it)).width);
+  w = Math.ceil(w) + pad * 2;
+  const h = pad * 2 + feed.length * lineH - 8;
+  const x = Math.round((screen.w - w) / 2);
+  const y = MARGIN;
+  drawPanel(ctx, x, y, w, h);
+  let ly = y + pad;
+  for (const it of feed) {
+    const mine = myNick && (it.killer === myNick || it.victim === myNick);
+    if (mine) {
+      ctx.fillStyle = it.victim === myNick ? "rgba(229,57,53,0.35)" : "rgba(67,160,71,0.35)";
+      ctx.fillRect(x + 4, ly - 3, w - 8, lineH - 2);
+    }
+    let lx = x + pad;
+    const killer = it.killer ?? "?";
+    ctx.fillStyle = PALETTE.accent;
+    ctx.fillText(killer, lx, ly);
+    lx += ctx.measureText(killer).width;
+    ctx.fillStyle = "#ef5350";
+    ctx.fillText(" ► ", lx, ly);
+    lx += ctx.measureText(" ► ").width;
+    ctx.fillStyle = PALETTE.text;
+    ctx.fillText(it.victim, lx, ly);
+    lx += ctx.measureText(it.victim).width;
+    if (it.streak >= 3) {
+      ctx.fillStyle = "#ff9800";
+      ctx.fillText(` ×${it.streak}`, lx, ly);
+    }
+    ly += lineH;
+  }
 }
 
 function setFont(ctx, px = HUD_FONT_PX) {

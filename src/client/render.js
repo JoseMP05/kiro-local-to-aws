@@ -56,11 +56,14 @@ export function drawFrame(ctx, cam, scene, dpr) {
     dpr * (cam.oy - cam.originY * cam.scale)
   );
 
-  drawGround(ctx, arena.w, arena.h);
-  for (const o of obstacles) drawObstacle(ctx, o);
-
   const vr = visibleWorldRect(cam, arena);
   const margin = 100;
+
+  drawGround(ctx, arena.w, arena.h, vr);
+  for (const o of obstacles) {
+    if (o.x > vr.right + margin || o.x + o.w < vr.left - margin || o.y > vr.bottom + margin || o.y + o.h < vr.top - margin) continue;
+    drawObstacle(ctx, o);
+  }
 
   for (const b of boxes.values()) {
     if (outside(b, vr, margin)) continue;

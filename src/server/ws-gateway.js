@@ -27,6 +27,7 @@ export function createGateway({ game, config, now = Date.now, log = () => {} }) 
     tickRate: config.tick.rate,
     interpolationDelayMs: config.network.interpolationDelayMs,
     maxHealth: config.tank.maxHealth,
+    reloadMs: config.bullet.reloadMs,
     tankSize: config.tank.size,
     bulletRadius: config.bullet.radius,
     boxSize: config.boxes.size,

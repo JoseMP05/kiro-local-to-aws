@@ -13,7 +13,8 @@ import { NEUTRAL_INPUT } from "./tanks.js";
  * @param {number} env.leaderBonus
  * @param {number} env.deathLossPercent
  * @param {number|null} env.leaderId Líder al inicio del Tick (fase 0)
- * @returns {Array<{victimNick:string,killerNick:string|null}>} eventos kill
+ * @returns {Array<{victimNick:string,killerNick:string|null,streak:number}>} eventos kill
+ *   (streak: eliminaciones seguidas del autor, 0 si no hay autor o fue daño propio)
  */
 export function applyScoring(env) {
   const { newlyDead, tanks, tick, killPoints, leaderBonus, deathLossPercent, leaderId } = env;
@@ -27,10 +28,13 @@ export function applyScoring(env) {
     // 2) Puntos al autor.
     const hit = victim.lastHit;
     let killerNick = hit ? hit.ownerNick : null;
+    let streak = 0;
     if (hit && hit.ownerId !== victim.id) {
       const killer = tanks.get(hit.ownerId);
       if (killer) {
         killer.score += killPoints;
+        killer.streak = (killer.streak ?? 0) + 1;
+        streak = killer.streak;
         if (leaderId !== null && victim.id === leaderId) {
           killer.score += leaderBonus;
         }
@@ -44,8 +48,9 @@ export function applyScoring(env) {
     victim.deathPos = { x: victim.x, y: victim.y };
     victim.lastInput = NEUTRAL_INPUT;
     victim.lastHit = null;
+    victim.streak = 0;
 
-    kills.push({ victimNick: victim.nick, killerNick });
+    kills.push({ victimNick: victim.nick, killerNick, streak });
   }
 
   return kills;
