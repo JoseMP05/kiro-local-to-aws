@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { makeGame } from "../helpers/game-factory.js";
-import { buildPlayerState, buildSpectatorState } from "../../src/server/snapshot.js";
+import { buildPlayerState, buildSpectatorState, buildWelcomeConfig } from "../../src/server/snapshot.js";
 
 const OPTS = {
   "arena.width": 4000, "arena.height": 3000,
@@ -60,4 +60,21 @@ test("shieldMs vale la duración exacta del escudo al recogerlo y 0 al caducar",
   st = buildPlayerState(game.getView(), tank.id, config).tanks.find((t) => t.id === tank.id);
   assert.equal(st.shield, false);
   assert.equal(st.shieldMs, 0);
+});
+
+test("welcome: incluye los campos que usa el HUD con sus claves exactas", () => {
+  const { config } = makeGame(1);
+  const w = buildWelcomeConfig(config);
+  assert.equal(w.botsInRanking, config.bots.inRanking);
+  assert.equal(w.boxPoints, config.boxes.points);
+  assert.equal(w.healAmount, config.boxes.healAmount);
+  assert.deepEqual(w.effectDurations, {
+    turbo: config.effects.turbo.durationMs,
+    ralentizar: config.effects.slow.durationMs,
+    escudo: config.effects.shield.durationMs,
+  });
+  assert.deepEqual(Object.keys(w.effectDurations).sort(), ["escudo", "ralentizar", "turbo"]);
+  for (const key of ["tickRate", "interpolationDelayMs", "maxHealth", "reloadMs", "tankSize", "bulletRadius", "boxSize", "barrelLength"]) {
+    assert.ok(Number.isFinite(w[key]), key);
+  }
 });

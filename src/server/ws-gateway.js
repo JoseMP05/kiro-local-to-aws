@@ -6,7 +6,7 @@ import { decode, encode } from "../shared/protocol.js";
 import { validateNick, validateInput } from "../shared/validation.js";
 import { createRateLimiter } from "./rate-limiter.js";
 import {
-  buildPlayerState, buildSpectatorState, buildRanking, rankingTopSignature,
+  buildPlayerState, buildSpectatorState, buildRanking, rankingTopSignature, buildWelcomeConfig,
 } from "./snapshot.js";
 
 /**
@@ -23,17 +23,7 @@ export function createGateway({ game, config, now = Date.now, log = () => {} }) 
   let lastRankingSentAt = 0;
   let lastTopSignature = null;
 
-  const welcomeConfig = {
-    tickRate: config.tick.rate,
-    interpolationDelayMs: config.network.interpolationDelayMs,
-    maxHealth: config.tank.maxHealth,
-    reloadMs: config.bullet.reloadMs,
-    tankSize: config.tank.size,
-    bulletRadius: config.bullet.radius,
-    boxSize: config.boxes.size,
-    barrelLength: config.tank.barrelLength,
-    botsInRanking: config.bots.inRanking,
-  };
+  const welcomeConfig = buildWelcomeConfig(config);
 
   /** Registra una conexión nueva. */
   function addConnection(ws, role) {

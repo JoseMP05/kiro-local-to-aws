@@ -20,6 +20,33 @@ export function interestRect(center, aoiW, aoiH, arenaW, arenaH) {
   return { left: wx.lo, right: wx.hi, top: wy.lo, bottom: wy.hi };
 }
 
+/**
+ * Parámetros de la partida que el cliente necesita al entrar (mensajes
+ * welcome y spectatorWelcome). Lista blanca explícita.
+ * @param {object} config GameConfig
+ */
+export function buildWelcomeConfig(config) {
+  return {
+    tickRate: config.tick.rate,
+    interpolationDelayMs: config.network.interpolationDelayMs,
+    maxHealth: config.tank.maxHealth,
+    reloadMs: config.bullet.reloadMs,
+    tankSize: config.tank.size,
+    bulletRadius: config.bullet.radius,
+    boxSize: config.boxes.size,
+    barrelLength: config.tank.barrelLength,
+    botsInRanking: config.bots.inRanking,
+    boxPoints: config.boxes.points,
+    healAmount: config.boxes.healAmount,
+    // Duración total (ms) de cada efecto, para la barra de tiempo restante del HUD.
+    effectDurations: {
+      turbo: config.effects.turbo.durationMs,
+      ralentizar: config.effects.slow.durationMs,
+      escudo: config.effects.shield.durationMs,
+    },
+  };
+}
+
 /** Lista blanca fija: nunca { ...tank }. */
 function toTankState(t) {
   return {
