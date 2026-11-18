@@ -2,7 +2,7 @@
 // retro. La función de transformación es pura; el dibujo usa el contexto 2D.
 
 import {
-  PALETTE, RETRO_FONT, drawGround, drawObstacle, drawCrate, drawBullet, drawTank,
+  PALETTE, RETRO_FONT, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel,
   drawCrtOverlay, drawPanel, drawOutlinedText,
 } from "../shared/sprites.js";
 
@@ -57,7 +57,7 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
       barrelLength: config.barrelLength,
       maxHealth: config.maxHealth,
       color: t.bot ? "#9e9e9e" : "#1e88e5",
-      label: t.bot ? `${t.nick} BOT · ${t.score}` : t.nick,
+      label: t.bot ? botLabel(t.nick, t.score, config.botsInRanking) : t.nick,
       labelColor: t.bot ? "#e0e0e0" : "#ffffff",
       labelPx,
       frame,

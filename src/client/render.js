@@ -3,8 +3,10 @@
 
 import { visibleWorldRect } from "./camera.js";
 import {
-  PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank,
+  PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel,
 } from "../shared/sprites.js";
+
+export { botLabel };
 
 /** Color del Tanque según su categoría. */
 export function tankColor(category) {
@@ -13,11 +15,6 @@ export function tankColor(category) {
     case "bot": return "#9e9e9e";
     default: return "#1e88e5"; // otros Jugadores
   }
-}
-
-/** Etiqueta de Bot con sus puntos. */
-export function botLabel(score) {
-  return `BOT · ${score}`;
 }
 
 /** Ancho de la barra de vida. */
@@ -83,7 +80,7 @@ export function drawFrame(ctx, cam, scene, dpr) {
       barrelLength: config.barrelLength,
       maxHealth: config.maxHealth,
       color: tankColor(category),
-      label: t.bot ? `${t.nick} ${botLabel(t.score)}` : t.nick,
+      label: t.bot ? botLabel(t.nick, t.score, config.botsInRanking) : t.nick,
       labelColor: LABEL_COLORS[category],
       labelPx: 14,
       frame,

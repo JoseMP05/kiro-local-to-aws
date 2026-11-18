@@ -16,9 +16,10 @@ const PROTECTED_TEXT_GAP = 24; // px entre el texto "PROTEGIDO" y el borde super
  * Líneas del Ranking: las 10 primeras entradas y, si la posición propia es > 10,
  * una línea adicional con la posición propia.
  * @param {object} ranking { tables: [{ name, entries }], you }
+ * @param {string} [myNick] Apodo propio: la fila propia se muestra como "<apodo> (tú)"
  * @returns {Array<{ text: string, position: number, nick: string, score: number, bot: boolean, own: boolean }>}
  */
-export function rankingLines(ranking) {
+export function rankingLines(ranking, myNick) {
   const lines = [];
   const table = ranking.tables?.[0];
   if (!table) return lines;
@@ -28,15 +29,16 @@ export function rankingLines(ranking) {
     const mark = e.bot ? " BOT" : "";
     const own = youPos !== null && e.position === youPos;
     lines.push({
-      text: `${e.position}. ${e.nick}${mark} — ${e.score}`,
+      text: `${e.position}. ${e.nick}${own ? " (tú)" : ""}${mark} — ${e.score}`,
       position: e.position, nick: e.nick, score: e.score, bot: !!e.bot, own,
     });
   }
 
   if (youPos !== null && youPos > 10) {
+    const nick = myNick || "";
     lines.push({
-      text: `${youPos}. (tú) — ${ranking.you.score}`,
-      position: youPos, nick: "(tú)", score: ranking.you.score, bot: false, own: true,
+      text: `${[`${youPos}.`, nick, "(tú)"].filter(Boolean).join(" ")} — ${ranking.you.score}`,
+      position: youPos, nick, score: ranking.you.score, bot: false, own: true,
     });
   }
 
@@ -96,7 +98,7 @@ export function drawHud(ctx, scene, screen) {
   ctx.save();
   if (scene.hitFlash > 0) drawHitFlash(ctx, scene.hitFlash, screen);
   if (scene.minimap) drawMinimap(ctx, scene.minimap, MARGIN, MARGIN);
-  if (scene.ranking) drawRanking(ctx, scene.ranking, screen);
+  if (scene.ranking) drawRanking(ctx, scene, screen);
   if (scene.showHelp) drawControls(ctx, screen);
   else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
@@ -159,10 +161,19 @@ function setFont(ctx, px = HUD_FONT_PX) {
   ctx.textAlign = "left";
 }
 
+/** Recorta `text` con "…" para que su ancho no pase de maxW (px). */
+export function fitText(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+  return t + "…";
+}
+
 const MEDALS = ["#ffd54f", "#cfd8dc", "#ffab91"];
 
-function drawRanking(ctx, ranking, screen) {
-  const lines = rankingLines(ranking);
+function drawRanking(ctx, scene, screen) {
+  const ranking = scene.ranking;
+  const lines = rankingLines(ranking, scene.myNick);
   const pad = 12;
   const lineH = HUD_FONT_PX + 6;
   const w = 260;
@@ -188,8 +199,12 @@ function drawRanking(ctx, ranking, screen) {
     const color = line.position <= 3 ? MEDALS[line.position - 1] : PALETTE.text;
     ctx.fillStyle = color;
     ctx.textAlign = "left";
-    const nick = line.nick.length > 14 ? line.nick.slice(0, 13) + "…" : line.nick;
-    ctx.fillText(`${String(line.position).padStart(2, " ")}. ${nick}`, x + pad, ly);
+    // La fila propia lleva " (tú)"; el apodo se recorta para que todo quepa antes de los puntos.
+    const prefix = `${String(line.position).padStart(2, " ")}. `;
+    const suffix = line.own ? " (tú)" : "";
+    const maxNickW = w - pad * 2 - 8 - ctx.measureText(String(line.score)).width
+      - ctx.measureText(prefix + suffix).width - (line.bot ? 78 : 0);
+    ctx.fillText(prefix + fitText(ctx, line.nick, maxNickW) + suffix, x + pad, ly);
     if (line.bot) {
       ctx.fillStyle = "#9e9e9e";
       ctx.fillText("BOT", x + w - pad - 78, ly);

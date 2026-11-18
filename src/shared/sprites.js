@@ -549,6 +549,18 @@ export function drawBullet(ctx, x, y, r) {
   ctx.fillRect(x - Math.ceil(d / 2), y - Math.ceil(d / 2), d, d);
 }
 
+/**
+ * Etiqueta de Bot: el apodo con la marca BOT (salvo que el apodo ya diga "Bot");
+ * los puntos solo se muestran si los Bots están en el Ranking (si no, el número
+ * confunde con el del Líder).
+ */
+export function botLabel(nick, score, showScore = false) {
+  // Si el apodo ya empieza por "Bot" no se repite la marca.
+  const tag = /^bot\b/i.test(nick) ? "" : " BOT";
+  const pts = showScore ? ` · ${score}` : "";
+  return `${nick}${tag}${pts}`;
+}
+
 /** Texto con contorno negro, legible sobre cualquier fondo. */
 export function drawOutlinedText(ctx, text, x, y, { px = 11, color = PALETTE.text, align = "center", baseline = "top" } = {}) {
   ctx.font = `bold ${px}px ${RETRO_FONT}`;
