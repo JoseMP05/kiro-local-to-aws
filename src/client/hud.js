@@ -3,6 +3,10 @@
 // pantalla (píxeles CSS) con letra de al menos 14 px.
 
 import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor } from "../shared/sprites.js";
+import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
+import { KILL_ROLE_COLORS } from "../shared/ui-colors.js";
+
+export { killFeedText };
 
 const HUD_FONT_PX = 14;
 const MARGIN = 12;
@@ -108,13 +112,6 @@ export function drawHud(ctx, scene, screen) {
   ctx.restore();
 }
 
-/** Texto de una línea del aviso de eliminaciones. */
-export function killFeedText(item) {
-  const killer = item.killer ?? "?";
-  const streak = item.streak >= 3 ? ` ×${item.streak}` : "";
-  return `${killer} ► ${item.victim}${streak}`;
-}
-
 // Borde rojo que se desvanece al recibir daño. `alpha` en [0, 1].
 function drawHitFlash(ctx, alpha, screen) {
   const g = ctx.createRadialGradient(
@@ -147,19 +144,10 @@ function drawKillFeed(ctx, feed, myNick, screen) {
       ctx.fillRect(x + 4, ly - 3, w - 8, lineH - 2);
     }
     let lx = x + pad;
-    const killer = it.killer ?? "?";
-    ctx.fillStyle = PALETTE.accent;
-    ctx.fillText(killer, lx, ly);
-    lx += ctx.measureText(killer).width;
-    ctx.fillStyle = "#ef5350";
-    ctx.fillText(" ► ", lx, ly);
-    lx += ctx.measureText(" ► ").width;
-    ctx.fillStyle = PALETTE.text;
-    ctx.fillText(it.victim, lx, ly);
-    lx += ctx.measureText(it.victim).width;
-    if (it.streak >= 3) {
-      ctx.fillStyle = "#ff9800";
-      ctx.fillText(` ×${it.streak}`, lx, ly);
+    for (const seg of killFeedSegments(it)) {
+      ctx.fillStyle = KILL_ROLE_COLORS[seg.role];
+      ctx.fillText(seg.text, lx, ly);
+      lx += ctx.measureText(seg.text).width;
     }
     ly += lineH;
   }
@@ -351,9 +339,17 @@ function drawHelpHint(ctx, screen) {
   ctx.fillText(label, x + 12 + kw + 8, y + 10 + (HUD_FONT_PX + 6) / 2);
 }
 
+/** Titular de la pantalla de eliminación según quién causó la baja. */
+export function deathHeadline(killedBy) {
+  if (!killedBy) return "ELIMINADO";
+  if (killedBy.self) return "TE AUTODESTRUISTE";
+  if (killedBy.killer) return `ELIMINADO POR ${killedBy.killer}`;
+  return "ELIMINADO";
+}
+
 function drawCountdown(ctx, scene, screen) {
   const secs = countdownSeconds(scene.respawnTick, scene.estimatedTick, scene.tickRate);
-  drawOutlinedText(ctx, "ELIMINADO", screen.w / 2, screen.h / 2 - 70, { px: 28, color: "#ef5350" });
+  drawOutlinedText(ctx, deathHeadline(scene.killedBy), screen.w / 2, screen.h / 2 - 70, { px: 28, color: "#ef5350" });
   drawOutlinedText(ctx, `REAPARECES EN ${secs}`, screen.w / 2, screen.h / 2 - 30, { px: 40, color: PALETTE.accent });
 }
 

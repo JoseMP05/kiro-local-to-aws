@@ -43,3 +43,37 @@ export function streakMilestone(streak) {
   if (streak % 5 === 0) return `LEYENDA ×${streak}`;
   return null;
 }
+
+/** ¿El aviso es una autodestrucción (el autor es la propia víctima)? */
+export function isSelfKill(item) {
+  return item.killer != null && item.killer === item.victim;
+}
+
+/** Texto plano de una línea del aviso de eliminaciones. */
+export function killFeedText(item) {
+  if (isSelfKill(item)) return `${item.victim} ✸ se autodestruyó`;
+  const killer = item.killer ?? "?";
+  const streak = item.streak >= 3 ? ` ×${item.streak}` : "";
+  return `${killer} ► ${item.victim}${streak}`;
+}
+
+/**
+ * Segmentos de una línea del aviso para dibujarla por colores.
+ * @returns {Array<{ text: string, role: "killer"|"sep"|"victim"|"streak" }>}
+ */
+export function killFeedSegments(item) {
+  if (isSelfKill(item)) {
+    return [
+      { text: item.victim, role: "victim" },
+      { text: " ✸ ", role: "sep" },
+      { text: "se autodestruyó", role: "killer" },
+    ];
+  }
+  const segs = [
+    { text: item.killer ?? "?", role: "killer" },
+    { text: " ► ", role: "sep" },
+    { text: item.victim, role: "victim" },
+  ];
+  if (item.streak >= 3) segs.push({ text: ` ×${item.streak}`, role: "streak" });
+  return segs;
+}

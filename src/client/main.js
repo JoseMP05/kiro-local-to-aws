@@ -10,7 +10,7 @@ import { drawHud, powerupBadges } from "./hud.js";
 import { drawCrtOverlay } from "/shared/sprites.js";
 import { createParticles } from "/shared/particles.js";
 import { createAudio } from "./audio.js";
-import { createKillFeed, streakMilestone } from "/shared/kill-feed.js";
+import { createKillFeed, streakMilestone, isSelfKill } from "/shared/kill-feed.js";
 
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
@@ -32,6 +32,7 @@ let lastState = null;
 let lastSendAt = 0;
 let frame = 0;
 let showHelp = true; // panel de controles visible hasta que se pulse H
+let killedBy = null; // { killer, self }: quién eliminó al Jugador en su muerte actual
 const particles = createParticles();
 const audio = createAudio();
 const killFeed = createKillFeed();
@@ -100,6 +101,7 @@ function handleServerMessage(msg) {
       if (!deathFocus) deathFocus = { x: own.x, y: own.y };
     } else {
       deathFocus = null;
+      killedBy = null;
     }
     return;
   }
@@ -118,6 +120,7 @@ function reactToState(prev, next) {
     const victim = prev?.tanks.find((t) => t.nick === k.victim);
     if (victim) particles.burst(victim.x, victim.y, now);
     audio.explosion(k.victim === myNick);
+    if (k.victim === myNick) killedBy = { killer: k.killer ?? null, self: isSelfKill(k) };
     if (k.killer === myNick && k.victim !== myNick) {
       iKilled = true;
       const label = streakMilestone(k.streak);
@@ -183,7 +186,7 @@ joinForm.addEventListener("submit", (e) => {
 
 rejoinButton.addEventListener("click", () => {
   welcome = null; ownId = null; buffer = null; ranking = null; lastState = null; deathFocus = null;
-  killFeed.clear(); banner = null; hitFlashAt = -Infinity;
+  killFeed.clear(); banner = null; hitFlashAt = -Infinity; killedBy = null;
   sampler = createInputSampler();
   showJoin();
 });
@@ -303,6 +306,7 @@ function draw() {
       banner,
       hitFlash: Math.max(0, 1 - (now - hitFlashAt) / HIT_FLASH_MS),
       respawnTick,
+      killedBy,
       ownHealth: ownState && !ownState.dead
         ? { hp: ownState.hp, maxHp: ownState.maxHp, base: welcome.config.maxHealth }
         : null,

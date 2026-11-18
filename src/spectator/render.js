@@ -6,6 +6,9 @@ import {
   drawCrtOverlay, drawPanel, drawOutlinedText,
 } from "../shared/sprites.js";
 
+import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
+import { KILL_ROLE_COLORS } from "../shared/ui-colors.js";
+
 const RANKING_FONT_PX = 24;
 const MEDALS = ["#ffd54f", "#cfd8dc", "#ffab91"];
 
@@ -122,12 +125,9 @@ function drawKillFeed(ctx, feed, screen) {
   const pad = 12;
   ctx.font = `bold ${px}px ${RETRO_FONT}`;
   let w = 0;
-  const texts = feed.map((it) => ({
-    killer: it.killer ?? "?", victim: it.victim, streak: it.streak >= 3 ? ` ×${it.streak}` : "",
-  }));
-  for (const t of texts) w = Math.max(w, ctx.measureText(`${t.killer} ► ${t.victim}${t.streak}`).width);
+  for (const it of feed) w = Math.max(w, ctx.measureText(killFeedText(it)).width);
   w = Math.ceil(w) + pad * 2;
-  const h = pad * 2 + texts.length * lineH - 12;
+  const h = pad * 2 + feed.length * lineH - 12;
   const x = screen.w - w - 24;
   const y = 20;
   drawPanel(ctx, x, y, w, h);
@@ -135,20 +135,12 @@ function drawKillFeed(ctx, feed, screen) {
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   let ly = y + pad;
-  for (const t of texts) {
+  for (const it of feed) {
     let lx = x + pad;
-    ctx.fillStyle = PALETTE.accent;
-    ctx.fillText(t.killer, lx, ly);
-    lx += ctx.measureText(t.killer).width;
-    ctx.fillStyle = "#ef5350";
-    ctx.fillText(" ► ", lx, ly);
-    lx += ctx.measureText(" ► ").width;
-    ctx.fillStyle = PALETTE.text;
-    ctx.fillText(t.victim, lx, ly);
-    if (t.streak) {
-      lx += ctx.measureText(t.victim).width;
-      ctx.fillStyle = "#ff9800";
-      ctx.fillText(t.streak, lx, ly);
+    for (const seg of killFeedSegments(it)) {
+      ctx.fillStyle = KILL_ROLE_COLORS[seg.role];
+      ctx.fillText(seg.text, lx, ly);
+      lx += ctx.measureText(seg.text).width;
     }
     ly += lineH;
   }
