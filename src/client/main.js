@@ -197,6 +197,7 @@ function showGame() {
   // La ayuda se muestra al entrar y se oculta sola; no vuelve a aparecer al reaparecer.
   showHelp = true;
   helpHideAt = performance.now() + HELP_AUTO_HIDE_MS;
+  audio.startMusic();
 }
 function showDisconnect() {
   disconnectScreen.classList.remove("hidden");
@@ -206,6 +207,7 @@ joinForm.addEventListener("submit", (e) => {
   e.preventDefault();
   nickError.textContent = "";
   const nick = nickInput.value;
+  audio.unlock(); // el gesto del usuario habilita el audio
   connect(nick);
 });
 
@@ -228,6 +230,10 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "KeyH" && !e.repeat) {
     showHelp = !showHelp;
     helpHideAt = 0; // el control manual anula el ocultado automático
+    return;
+  }
+  if (e.code === "KeyN" && !e.repeat) {
+    audio.toggleMusic();
     return;
   }
   if (e.code === "KeyM" && !e.repeat) {

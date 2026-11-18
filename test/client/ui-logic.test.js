@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { rankingLines, deathHeadline, fitText } from "../../src/client/hud.js";
+import { rankingLines, deathHeadline, fitText, CONTROLS } from "../../src/client/hud.js";
 import { killFeedText, killFeedSegments, isSelfKill } from "../../src/shared/kill-feed.js";
 import { botLabel } from "../../src/client/render.js";
 import { createBulletTrails } from "../../src/shared/bullet-trails.js";
@@ -49,6 +49,10 @@ test("la etiqueta de Bot no repite la marca ni muestra puntos fuera del Ranking"
   assert.equal(botLabel("Ana", 75), "Ana BOT");
   assert.equal(botLabel("Bot 20", 75, true), "Bot 20 · 75");
   assert.equal(botLabel("Ana", 75, true), "Ana BOT · 75");
+});
+
+test("el panel de controles incluye la tecla N de música", () => {
+  assert.ok(CONTROLS.some((c) => c.keys[0] === "N" && c.action === "MÚSICA SÍ/NO"));
 });
 
 test("las estelas se acotan y se limpian al desaparecer la Bala", () => {
