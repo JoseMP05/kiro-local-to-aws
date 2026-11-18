@@ -31,6 +31,7 @@ npm test
 | Ratón | Apuntar |
 | Clic | Disparar |
 | M | Silenciar o activar el sonido |
+| N | Activar o silenciar la música |
 | H | Ocultar o mostrar la ayuda |
 
 ### Cómo se juega

@@ -5,6 +5,7 @@ import { createStateBuffer } from "/shared/interpolation.js";
 import { drawSpectatorFrame } from "./render.js";
 import { createKillFeed, streakMilestone } from "/shared/kill-feed.js";
 import { createParticles } from "/shared/particles.js";
+import { createPickupFx, pickupInfo } from "/shared/pickup-fx.js";
 
 const canvas = document.getElementById("spectator-canvas");
 const ctx = canvas.getContext("2d");
@@ -15,6 +16,7 @@ let welcome = null;
 let buffer = null;
 let ranking = null;
 const killFeed = createKillFeed();
+const pickupFx = createPickupFx();
 const particles = createParticles();
 let lastTanks = new Map();
 let lastTanksById = new Map();
@@ -81,6 +83,11 @@ function handle(msg) {
       const label = streakMilestone(k.streak);
       if (label && k.killer) banner = { text: `${k.killer}: ${label}`, until: now + 3000 };
     }
+    // Cajas recogidas: animación sobre la Caja y ráfaga del color del tipo.
+    for (const c of msg.data.collected ?? []) {
+      pickupFx.add(c.kind, c.x, c.y, now);
+      particles.burst(c.x, c.y, now, { count: 12, colors: pickupInfo(c.kind).burst, speed: 180 });
+    }
     // Chispas en cada Tanque que perdió vida sin morir.
     for (const t of msg.data.tanks) {
       const b = lastTanksById.get(t.id);
@@ -109,6 +116,7 @@ function draw() {
       config: welcome.config,
       ranking,
       particles,
+      pickupFx,
       now: performance.now(),
       killFeed: killFeed.active(performance.now()),
       banner: banner && performance.now() < banner.until ? banner.text : null,

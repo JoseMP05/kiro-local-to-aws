@@ -72,7 +72,7 @@ export function pickKind(powerupChance, weights, rng) {
  * gana el Tanque activo de menor joinSeq. Suma boxPoints y emite boxPicked.
  * @param {object} world
  * @param {object} env { tankSize, boxSize, boxPoints }
- * @returns {Array<{ tankId: number, kind: string }>} eventos boxPicked
+ * @returns {Array<{ tankId: number, kind: string, boxId: number, x: number, y: number }>} eventos boxPicked
  */
 export function collectBoxes(world, env) {
   const { tankSize, boxSize, boxPoints } = env;
@@ -91,7 +91,7 @@ export function collectBoxes(world, env) {
       // Solo las Cajas de puntos suman; los potenciadores dan un efecto (lo aplica game.js).
       if (box.kind === "puntos") winner.score += boxPoints;
       world.boxes.delete(boxId);
-      picked.push({ tankId: winner.id, kind: box.kind });
+      picked.push({ tankId: winner.id, kind: box.kind, boxId, x: box.x, y: box.y });
     }
   }
 

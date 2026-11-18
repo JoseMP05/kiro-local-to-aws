@@ -2,10 +2,15 @@
 // retro. La función de transformación es pura; el dibujo usa el contexto 2D.
 
 import {
-  PALETTE, RETRO_FONT, drawGround, drawObstacle, drawCrate, drawBullet, drawTank,
+  PALETTE, RETRO_FONT, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel,
   drawCrtOverlay, drawPanel, drawOutlinedText,
 } from "../shared/sprites.js";
 
+import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
+import { createBulletTrails } from "../shared/bullet-trails.js";
+import { KILL_ROLE_COLORS } from "../shared/ui-colors.js";
+
+const bulletTrails = createBulletTrails();
 const RANKING_FONT_PX = 24;
 const MEDALS = ["#ffd54f", "#cfd8dc", "#ffab91"];
 
@@ -43,7 +48,14 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
   drawGround(ctx, arena.width, arena.height);
   for (const o of obstacles) drawObstacle(ctx, o);
   for (const b of boxes.values()) drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
-  for (const b of bullets.values()) drawBullet(ctx, b.x, b.y, config.bulletRadius);
+  if (scene.pickupFx) scene.pickupFx.draw(ctx, scene.now ?? 0, config.boxSize);
+
+  bulletTrails.begin();
+  for (const b of bullets.values()) {
+    bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius);
+    drawBullet(ctx, b.x, b.y, config.bulletRadius);
+  }
+  bulletTrails.end();
 
   // Etiquetas de unos 13 px en pantalla, con la escala que tenga la Arena.
   const labelPx = 11 / tr.s;
@@ -54,7 +66,7 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
       barrelLength: config.barrelLength,
       maxHealth: config.maxHealth,
       color: t.bot ? "#9e9e9e" : "#1e88e5",
-      label: t.bot ? `${t.nick} BOT · ${t.score}` : t.nick,
+      label: t.bot ? botLabel(t.nick, t.score, config.botsInRanking) : t.nick,
       labelColor: t.bot ? "#e0e0e0" : "#ffffff",
       labelPx,
       frame,
@@ -122,12 +134,9 @@ function drawKillFeed(ctx, feed, screen) {
   const pad = 12;
   ctx.font = `bold ${px}px ${RETRO_FONT}`;
   let w = 0;
-  const texts = feed.map((it) => ({
-    killer: it.killer ?? "?", victim: it.victim, streak: it.streak >= 3 ? ` ×${it.streak}` : "",
-  }));
-  for (const t of texts) w = Math.max(w, ctx.measureText(`${t.killer} ► ${t.victim}${t.streak}`).width);
+  for (const it of feed) w = Math.max(w, ctx.measureText(killFeedText(it)).width);
   w = Math.ceil(w) + pad * 2;
-  const h = pad * 2 + texts.length * lineH - 12;
+  const h = pad * 2 + feed.length * lineH - 12;
   const x = screen.w - w - 24;
   const y = 20;
   drawPanel(ctx, x, y, w, h);
@@ -135,20 +144,12 @@ function drawKillFeed(ctx, feed, screen) {
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   let ly = y + pad;
-  for (const t of texts) {
+  for (const it of feed) {
     let lx = x + pad;
-    ctx.fillStyle = PALETTE.accent;
-    ctx.fillText(t.killer, lx, ly);
-    lx += ctx.measureText(t.killer).width;
-    ctx.fillStyle = "#ef5350";
-    ctx.fillText(" ► ", lx, ly);
-    lx += ctx.measureText(" ► ").width;
-    ctx.fillStyle = PALETTE.text;
-    ctx.fillText(t.victim, lx, ly);
-    if (t.streak) {
-      lx += ctx.measureText(t.victim).width;
-      ctx.fillStyle = "#ff9800";
-      ctx.fillText(t.streak, lx, ly);
+    for (const seg of killFeedSegments(it)) {
+      ctx.fillStyle = KILL_ROLE_COLORS[seg.role];
+      ctx.fillText(seg.text, lx, ly);
+      lx += ctx.measureText(seg.text).width;
     }
     ly += lineH;
   }

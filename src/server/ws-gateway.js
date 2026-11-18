@@ -6,7 +6,7 @@ import { decode, encode } from "../shared/protocol.js";
 import { validateNick, validateInput } from "../shared/validation.js";
 import { createRateLimiter } from "./rate-limiter.js";
 import {
-  buildPlayerState, buildSpectatorState, buildRanking, rankingTopSignature,
+  buildPlayerState, buildSpectatorState, buildRanking, rankingTopSignature, buildWelcomeConfig,
 } from "./snapshot.js";
 
 /**
@@ -23,16 +23,7 @@ export function createGateway({ game, config, now = Date.now, log = () => {} }) 
   let lastRankingSentAt = 0;
   let lastTopSignature = null;
 
-  const welcomeConfig = {
-    tickRate: config.tick.rate,
-    interpolationDelayMs: config.network.interpolationDelayMs,
-    maxHealth: config.tank.maxHealth,
-    reloadMs: config.bullet.reloadMs,
-    tankSize: config.tank.size,
-    bulletRadius: config.bullet.radius,
-    boxSize: config.boxes.size,
-    barrelLength: config.tank.barrelLength,
-  };
+  const welcomeConfig = buildWelcomeConfig(config);
 
   /** Registra una conexión nueva. */
   function addConnection(ws, role) {
@@ -145,6 +136,7 @@ export function createGateway({ game, config, now = Date.now, log = () => {} }) 
     const view = game.getView();
     const ranking = game.getRanking();
     const kills = tickResult.kills;
+    const picked = tickResult.boxPicked ?? [];
 
     // joined → welcome.
     for (const j of tickResult.joined) {
@@ -167,9 +159,9 @@ export function createGateway({ game, config, now = Date.now, log = () => {} }) 
     // state por conexión.
     for (const conn of connections.values()) {
       if (conn.role === "spectator") {
-        send(conn, { type: "state", data: buildSpectatorState(view, config, kills) });
+        send(conn, { type: "state", data: buildSpectatorState(view, config, kills, picked) });
       } else if (conn.tankId !== null) {
-        send(conn, { type: "state", data: buildPlayerState(view, conn.tankId, config, kills) });
+        send(conn, { type: "state", data: buildPlayerState(view, conn.tankId, config, kills, picked) });
       }
     }
 

@@ -3,6 +3,10 @@
 // pantalla (píxeles CSS) con letra de al menos 14 px.
 
 import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor } from "../shared/sprites.js";
+import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
+import { KILL_ROLE_COLORS, EFFECT_COLORS } from "../shared/ui-colors.js";
+
+export { killFeedText };
 
 const HUD_FONT_PX = 14;
 const MARGIN = 12;
@@ -12,9 +16,10 @@ const PROTECTED_TEXT_GAP = 24; // px entre el texto "PROTEGIDO" y el borde super
  * Líneas del Ranking: las 10 primeras entradas y, si la posición propia es > 10,
  * una línea adicional con la posición propia.
  * @param {object} ranking { tables: [{ name, entries }], you }
+ * @param {string} [myNick] Apodo propio: la fila propia se muestra como "<apodo> (tú)"
  * @returns {Array<{ text: string, position: number, nick: string, score: number, bot: boolean, own: boolean }>}
  */
-export function rankingLines(ranking) {
+export function rankingLines(ranking, myNick) {
   const lines = [];
   const table = ranking.tables?.[0];
   if (!table) return lines;
@@ -24,15 +29,16 @@ export function rankingLines(ranking) {
     const mark = e.bot ? " BOT" : "";
     const own = youPos !== null && e.position === youPos;
     lines.push({
-      text: `${e.position}. ${e.nick}${mark} — ${e.score}`,
+      text: `${e.position}. ${e.nick}${own ? " (tú)" : ""}${mark} — ${e.score}`,
       position: e.position, nick: e.nick, score: e.score, bot: !!e.bot, own,
     });
   }
 
   if (youPos !== null && youPos > 10) {
+    const nick = myNick || "";
     lines.push({
-      text: `${youPos}. (tú) — ${ranking.you.score}`,
-      position: youPos, nick: "(tú)", score: ranking.you.score, bot: false, own: true,
+      text: `${[`${youPos}.`, nick, "(tú)"].filter(Boolean).join(" ")} — ${ranking.you.score}`,
+      position: youPos, nick, score: ranking.you.score, bot: false, own: true,
     });
   }
 
@@ -56,19 +62,24 @@ export function minimapLayout(arena, maxW, maxH) {
 }
 
 /**
- * Insignias de potenciadores activos del Jugador.
- * @param {{ effects?: Array<{ name: string, remainingMs: number }>, shield?: boolean }|undefined} own
- * @returns {Array<{ label: string, color: string }>}
+ * Insignias de efectos activos del Jugador, con el tiempo restante en fracción.
+ * @param {{ effects?: Array<{ name: string, remainingMs: number }>, shield?: boolean, shieldMs?: number, dead?: boolean }|undefined} own
+ * @param {Record<string, number>} [durations] duración total en ms por efecto (turbo, ralentizar, escudo)
+ * @returns {Array<{ label: string, color: string, frac: number }>}
  */
-export function powerupBadges(own) {
+export function powerupBadges(own, durations = {}) {
   if (!own || own.dead) return [];
   const out = [];
+  const frac = (ms, total) => (total > 0 ? Math.max(0, Math.min(1, ms / total)) : 1);
   for (const e of own.effects ?? []) {
     const secs = Math.ceil(e.remainingMs / 1000);
-    if (e.name === "turbo") out.push({ label: `TURBO ${secs}S`, color: "#ffca28" });
-    else if (e.name === "ralentizar") out.push({ label: `LENTO ${secs}S`, color: "#90a4ae" });
+    if (e.name === "turbo") out.push({ label: `TURBO ${secs}S`, color: EFFECT_COLORS.turbo, frac: frac(e.remainingMs, durations.turbo) });
+    else if (e.name === "ralentizar") out.push({ label: `LENTO ${secs}S`, color: EFFECT_COLORS.ralentizar, frac: frac(e.remainingMs, durations.ralentizar) });
   }
-  if (own.shield) out.push({ label: "ESCUDO", color: "#4fc3f7" });
+  if (own.shield) {
+    const ms = own.shieldMs ?? 0;
+    out.push({ label: ms > 0 ? `ESCUDO ${Math.ceil(ms / 1000)}S` : "ESCUDO", color: EFFECT_COLORS.escudo, frac: frac(ms, durations.escudo) });
+  }
   return out;
 }
 
@@ -78,6 +89,7 @@ export const CONTROLS = [
   { keys: ["RATÓN"], action: "APUNTAR" },
   { keys: ["CLIC"], action: "DISPARAR" },
   { keys: ["M"], action: "SONIDO SÍ/NO" },
+  { keys: ["N"], action: "MÚSICA SÍ/NO" },
   { keys: ["H"], action: "OCULTAR AYUDA" },
 ];
 
@@ -92,7 +104,7 @@ export function drawHud(ctx, scene, screen) {
   ctx.save();
   if (scene.hitFlash > 0) drawHitFlash(ctx, scene.hitFlash, screen);
   if (scene.minimap) drawMinimap(ctx, scene.minimap, MARGIN, MARGIN);
-  if (scene.ranking) drawRanking(ctx, scene.ranking, screen);
+  if (scene.ranking) drawRanking(ctx, scene, screen);
   if (scene.showHelp) drawControls(ctx, screen);
   else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
@@ -106,13 +118,6 @@ export function drawHud(ctx, scene, screen) {
   if (scene.killFeed?.length) drawKillFeed(ctx, scene.killFeed, scene.myNick, screen);
   if (scene.banner) drawOutlinedText(ctx, scene.banner.text, screen.w / 2, screen.h * 0.22, { px: 34, color: scene.banner.color });
   ctx.restore();
-}
-
-/** Texto de una línea del aviso de eliminaciones. */
-export function killFeedText(item) {
-  const killer = item.killer ?? "?";
-  const streak = item.streak >= 3 ? ` ×${item.streak}` : "";
-  return `${killer} ► ${item.victim}${streak}`;
 }
 
 // Borde rojo que se desvanece al recibir daño. `alpha` en [0, 1].
@@ -147,19 +152,10 @@ function drawKillFeed(ctx, feed, myNick, screen) {
       ctx.fillRect(x + 4, ly - 3, w - 8, lineH - 2);
     }
     let lx = x + pad;
-    const killer = it.killer ?? "?";
-    ctx.fillStyle = PALETTE.accent;
-    ctx.fillText(killer, lx, ly);
-    lx += ctx.measureText(killer).width;
-    ctx.fillStyle = "#ef5350";
-    ctx.fillText(" ► ", lx, ly);
-    lx += ctx.measureText(" ► ").width;
-    ctx.fillStyle = PALETTE.text;
-    ctx.fillText(it.victim, lx, ly);
-    lx += ctx.measureText(it.victim).width;
-    if (it.streak >= 3) {
-      ctx.fillStyle = "#ff9800";
-      ctx.fillText(` ×${it.streak}`, lx, ly);
+    for (const seg of killFeedSegments(it)) {
+      ctx.fillStyle = KILL_ROLE_COLORS[seg.role];
+      ctx.fillText(seg.text, lx, ly);
+      lx += ctx.measureText(seg.text).width;
     }
     ly += lineH;
   }
@@ -171,10 +167,19 @@ function setFont(ctx, px = HUD_FONT_PX) {
   ctx.textAlign = "left";
 }
 
+/** Recorta `text` con "…" para que su ancho no pase de maxW (px). */
+export function fitText(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + "…").width > maxW) t = t.slice(0, -1);
+  return t + "…";
+}
+
 const MEDALS = ["#ffd54f", "#cfd8dc", "#ffab91"];
 
-function drawRanking(ctx, ranking, screen) {
-  const lines = rankingLines(ranking);
+function drawRanking(ctx, scene, screen) {
+  const ranking = scene.ranking;
+  const lines = rankingLines(ranking, scene.myNick);
   const pad = 12;
   const lineH = HUD_FONT_PX + 6;
   const w = 260;
@@ -200,8 +205,12 @@ function drawRanking(ctx, ranking, screen) {
     const color = line.position <= 3 ? MEDALS[line.position - 1] : PALETTE.text;
     ctx.fillStyle = color;
     ctx.textAlign = "left";
-    const nick = line.nick.length > 14 ? line.nick.slice(0, 13) + "…" : line.nick;
-    ctx.fillText(`${String(line.position).padStart(2, " ")}. ${nick}`, x + pad, ly);
+    // La fila propia lleva " (tú)"; el apodo se recorta para que todo quepa antes de los puntos.
+    const prefix = `${String(line.position).padStart(2, " ")}. `;
+    const suffix = line.own ? " (tú)" : "";
+    const maxNickW = w - pad * 2 - 8 - ctx.measureText(String(line.score)).width
+      - ctx.measureText(prefix + suffix).width - (line.bot ? 78 : 0);
+    ctx.fillText(prefix + fitText(ctx, line.nick, maxNickW) + suffix, x + pad, ly);
     if (line.bot) {
       ctx.fillStyle = "#9e9e9e";
       ctx.fillText("BOT", x + w - pad - 78, ly);
@@ -252,9 +261,20 @@ export function drawMinimap(ctx, mm, x, y) {
     ctx.fillRect(ox + o.x * s, oy + o.y * s, Math.max(1, o.w * s), Math.max(1, o.h * s));
   }
 
-  ctx.fillStyle = PALETTE.accent;
   for (const b of boxes.values()) {
-    ctx.fillRect(Math.round(ox + b.x * s) - 1, Math.round(oy + b.y * s) - 1, 3, 3);
+    const bx = Math.round(ox + b.x * s);
+    const by = Math.round(oy + b.y * s);
+    if (b.kind === "botiquin") {
+      // Botiquín: cuadro blanco con punto rojo, se distingue de las Cajas de puntos.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(bx - 2, by - 2, 5, 5);
+      ctx.fillStyle = "#e53935";
+      ctx.fillRect(bx, by - 1, 1, 3);
+      ctx.fillRect(bx - 1, by, 3, 1);
+    } else {
+      ctx.fillStyle = PALETTE.accent;
+      ctx.fillRect(bx - 1, by - 1, 3, 3);
+    }
   }
 
   for (const t of tanks.values()) {
@@ -351,9 +371,17 @@ function drawHelpHint(ctx, screen) {
   ctx.fillText(label, x + 12 + kw + 8, y + 10 + (HUD_FONT_PX + 6) / 2);
 }
 
+/** Titular de la pantalla de eliminación según quién causó la baja. */
+export function deathHeadline(killedBy) {
+  if (!killedBy) return "ELIMINADO";
+  if (killedBy.self) return "TE AUTODESTRUISTE";
+  if (killedBy.killer) return `ELIMINADO POR ${killedBy.killer}`;
+  return "ELIMINADO";
+}
+
 function drawCountdown(ctx, scene, screen) {
   const secs = countdownSeconds(scene.respawnTick, scene.estimatedTick, scene.tickRate);
-  drawOutlinedText(ctx, "ELIMINADO", screen.w / 2, screen.h / 2 - 70, { px: 28, color: "#ef5350" });
+  drawOutlinedText(ctx, deathHeadline(scene.killedBy), screen.w / 2, screen.h / 2 - 70, { px: 28, color: "#ef5350" });
   drawOutlinedText(ctx, `REAPARECES EN ${secs}`, screen.w / 2, screen.h / 2 - 30, { px: 40, color: PALETTE.accent });
 }
 
@@ -386,16 +414,31 @@ function drawOwnHealth(ctx, own, screen) {
 function drawBadges(ctx, badges, screen) {
   setFont(ctx, 18);
   const pad = 10;
-  const h = 18 + pad * 2;
+  const barH = 6;
+  const h = 18 + pad * 2 + barH + 4;
   let y = screen.h - h - MARGIN - 4;
   for (const b of badges) {
-    const w = Math.ceil(ctx.measureText(b.label).width) + pad * 2;
+    const iconW = 14;
+    const w = Math.ceil(ctx.measureText(b.label).width) + pad * 2 + iconW + 8;
     const x = screen.w - w - MARGIN - 4;
     drawPanel(ctx, x, y, w, h);
+    // Icono: cuadro del color del efecto con borde oscuro.
+    ctx.fillStyle = "#000";
+    ctx.fillRect(x + pad - 1, y + pad + 1, iconW + 2, iconW + 2);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x + pad, y + pad + 2, iconW, iconW);
+    setFont(ctx, 18);
     ctx.fillStyle = b.color;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(b.label, x + pad, y + pad);
+    ctx.fillText(b.label, x + pad + iconW + 8, y + pad);
+    // Barra de tiempo restante.
+    const bw = w - pad * 2;
+    const by = y + pad + 18 + 4;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(x + pad - 1, by - 1, bw + 2, barH + 2);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x + pad, by, Math.round(bw * (b.frac ?? 1)), barH);
     y -= h + 10;
   }
 }

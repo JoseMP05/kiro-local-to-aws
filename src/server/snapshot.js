@@ -20,6 +20,33 @@ export function interestRect(center, aoiW, aoiH, arenaW, arenaH) {
   return { left: wx.lo, right: wx.hi, top: wy.lo, bottom: wy.hi };
 }
 
+/**
+ * Parámetros de la partida que el cliente necesita al entrar (mensajes
+ * welcome y spectatorWelcome). Lista blanca explícita.
+ * @param {object} config GameConfig
+ */
+export function buildWelcomeConfig(config) {
+  return {
+    tickRate: config.tick.rate,
+    interpolationDelayMs: config.network.interpolationDelayMs,
+    maxHealth: config.tank.maxHealth,
+    reloadMs: config.bullet.reloadMs,
+    tankSize: config.tank.size,
+    bulletRadius: config.bullet.radius,
+    boxSize: config.boxes.size,
+    barrelLength: config.tank.barrelLength,
+    botsInRanking: config.bots.inRanking,
+    boxPoints: config.boxes.points,
+    healAmount: config.boxes.healAmount,
+    // Duración total (ms) de cada efecto, para la barra de tiempo restante del HUD.
+    effectDurations: {
+      turbo: config.effects.turbo.durationMs,
+      ralentizar: config.effects.slow.durationMs,
+      escudo: config.effects.shield.durationMs,
+    },
+  };
+}
+
 /** Lista blanca fija: nunca { ...tank }. */
 function toTankState(t) {
   return {
@@ -35,8 +62,14 @@ function toTankState(t) {
     bot: t.isBot,
     inv: !!t.inv,
     shield: !!t.shield,
+    shieldMs: t.shieldMs ?? 0,
     effects: t.effects.map((e) => ({ name: e.name, remainingMs: e.remainingMs })),
   };
+}
+
+/** Aviso de Caja recogida visible (para la animación sobre la Caja). */
+function toCollectedState(p) {
+  return { kind: p.kind, x: round(p.x, 1), y: round(p.y, 1) };
 }
 
 /** Evento de eliminación: víctima, autor y racha del autor. */
@@ -54,8 +87,9 @@ function inRect(x, y, rect) {
  * @param {number} tankId Tanque del Jugador
  * @param {object} cfg GameConfig
  * @param {Array} kills eventos kill del Tick (sin filtrar)
+ * @param {Array} picked eventos boxPicked del Tick (sin filtrar)
  */
-export function buildPlayerState(view, tankId, cfg, kills = []) {
+export function buildPlayerState(view, tankId, cfg, kills = [], picked = []) {
   const own = view.tanks.find((t) => t.id === tankId);
   const center = own
     ? own.dead && own.deathPos
@@ -100,11 +134,15 @@ export function buildPlayerState(view, tankId, cfg, kills = []) {
     bullets,
     boxes,
     kills: kills.map(toKillState),
+    // Solo las recogidas propias, con la cantidad configurada.
+    pickups: picked.filter((p) => p.tankId === tankId).map((p) => ({ kind: p.kind, amount: p.amount ?? 0 })),
+    // Cualquier recogida dentro del Área_Interés, para animar la Caja.
+    collected: picked.filter((p) => inRect(p.x, p.y, rect)).map(toCollectedState),
   };
 }
 
 /** Estado para la Vista_Espectador: todas las entidades. */
-export function buildSpectatorState(view, cfg, kills = []) {
+export function buildSpectatorState(view, cfg, kills = [], picked = []) {
   const tanks = view.tanks.map(toTankState);
   const bullets = view.bullets.map((b) => ({ id: b.id, x: round(b.x, 1), y: round(b.y, 1) }));
   const boxes = view.boxes.map((b) => ({ id: b.id, x: round(b.x, 1), y: round(b.y, 1), kind: b.kind }));
@@ -114,6 +152,7 @@ export function buildSpectatorState(view, cfg, kills = []) {
     bullets,
     boxes,
     kills: kills.map(toKillState),
+    collected: picked.map(toCollectedState),
   };
 }
 

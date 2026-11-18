@@ -531,22 +531,56 @@ export function drawCrate(ctx, x, y, size, frame = 0, kind = "puntos") {
 }
 
 /**
- * Bala como bola de píxeles naranja con núcleo blanco. Se distingue de la
- * moneda amarilla de las Cajas.
+ * Bala: contorno oscuro, bola naranja y núcleo amarillo-blanco brillante. Se
+ * distingue de la moneda amarilla de las Cajas y del detalle del suelo.
  */
 export function drawBullet(ctx, x, y, r) {
   const d = Math.max(2, Math.round(r));
   x = Math.round(x);
   y = Math.round(y);
-  // Halo en cruz: da forma redondeada sin perder el aspecto de píxel.
-  ctx.fillStyle = "rgba(255,87,34,0.4)";
-  ctx.fillRect(x - d - 2, y - d + 1, 2 * d + 4, 2 * d - 2);
-  ctx.fillRect(x - d + 1, y - d - 2, 2 * d - 2, 2 * d + 4);
-  ctx.fillStyle = "#ff7043";
+  // Contorno oscuro en cruz: da forma redondeada sin perder el aspecto de píxel.
+  ctx.fillStyle = "#1a0600";
+  ctx.fillRect(x - d - 2, y - d, 2 * d + 4, 2 * d);
+  ctx.fillRect(x - d, y - d - 2, 2 * d, 2 * d + 4);
+  ctx.fillRect(x - d - 1, y - d - 1, 2 * d + 2, 2 * d + 2);
+  ctx.fillStyle = "#ff6d00";
   ctx.fillRect(x - d, y - d + 1, 2 * d, 2 * d - 2);
   ctx.fillRect(x - d + 1, y - d, 2 * d - 2, 2 * d);
+  ctx.fillStyle = "#ffe082";
+  ctx.fillRect(x - d + 2, y - d + 2, 2 * d - 4, 2 * d - 4);
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(x - Math.ceil(d / 2), y - Math.ceil(d / 2), d, d);
+}
+
+/**
+ * Estela de una Bala: cuadrados que se achican y desvanecen hacia atrás.
+ * @param {number[]} xs posiciones previas (la última es la más reciente)
+ * @param {number[]} ys
+ * @param {number} r radio de la Bala
+ * @param {number} [n] cuántas posiciones dibujar (las primeras n); por defecto todas
+ */
+export function drawBulletTrail(ctx, xs, ys, r, n = xs.length) {
+  if (n <= 0) return;
+  ctx.fillStyle = "#ffab40";
+  for (let i = 0; i < n; i++) {
+    const k = (i + 1) / (n + 1); // 0 = cola, 1 = cabeza
+    const d = Math.max(1, Math.round(r * (0.35 + 0.6 * k)));
+    ctx.globalAlpha = 0.5 * k;
+    ctx.fillRect(Math.round(xs[i]) - d, Math.round(ys[i]) - d, 2 * d, 2 * d);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Etiqueta de Bot: el apodo con la marca BOT (salvo que el apodo ya diga "Bot");
+ * los puntos solo se muestran si los Bots están en el Ranking (si no, el número
+ * confunde con el del Líder).
+ */
+export function botLabel(nick, score, showScore = false) {
+  // Si el apodo ya empieza por "Bot" no se repite la marca.
+  const tag = /^bot\b/i.test(nick) ? "" : " BOT";
+  const pts = showScore ? ` · ${score}` : "";
+  return `${nick}${tag}${pts}`;
 }
 
 /** Texto con contorno negro, legible sobre cualquier fondo. */

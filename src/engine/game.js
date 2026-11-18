@@ -264,6 +264,7 @@ export function createGame({ config, rng, bots, log }) {
       tankSize, boxSize: config.boxes.size, boxPoints: config.boxes.points,
     });
     for (const ev of picked) {
+      ev.amount = pickupAmount(ev.kind);
       result.boxPicked.push(ev);
       applyPowerup(ev);
       if (config.debug) {
@@ -359,6 +360,16 @@ export function createGame({ config, rng, bots, log }) {
     return result;
   }
 
+  // Cantidad configurada que otorga cada tipo de Caja (para el aviso al Jugador):
+  // puntos, vida, o duración en ms del turbo y del escudo.
+  function pickupAmount(kind) {
+    if (kind === "puntos") return config.boxes.points;
+    if (kind === "botiquin") return config.boxes.healAmount;
+    if (kind === "turbo") return config.effects.turbo.durationMs;
+    if (kind === "escudo") return config.effects.shield.durationMs;
+    return 0;
+  }
+
   // Aplica el potenciador de una Caja recogida (las Cajas de puntos no hacen nada aquí).
   function applyPowerup(ev) {
     if (ev.kind === "turbo") {
@@ -411,6 +422,9 @@ export function createGame({ config, rng, bots, log }) {
         invulnerableUntilTick: t.invulnerableUntilTick,
         inv: t.invulnerableUntilTick >= 0 && world.tick <= t.invulnerableUntilTick,
         shield: t.shieldUntilTick >= 0 && world.tick <= t.shieldUntilTick,
+        shieldMs: t.shieldUntilTick >= 0 && world.tick <= t.shieldUntilTick
+          ? Math.round(((t.shieldUntilTick - world.tick + 1) * 1000) / config.tick.rate)
+          : 0,
         respawnTick: t.dead && t.deadTick !== null ? t.deadTick + respawnTicks : null,
         effects: effects.activeFor(t.id),
       });

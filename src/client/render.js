@@ -2,9 +2,12 @@
 // son puras (sin DOM al importar). drawFrame usa el contexto 2D.
 
 import { visibleWorldRect } from "./camera.js";
+import { createBulletTrails } from "../shared/bullet-trails.js";
 import {
-  PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank,
+  PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel,
 } from "../shared/sprites.js";
+
+export { botLabel };
 
 /** Color del Tanque según su categoría. */
 export function tankColor(category) {
@@ -15,10 +18,7 @@ export function tankColor(category) {
   }
 }
 
-/** Etiqueta de Bot con sus puntos. */
-export function botLabel(score) {
-  return `BOT · ${score}`;
-}
+const bulletTrails = createBulletTrails();
 
 /** Ancho de la barra de vida. */
 export function hpBarWidth(hp, maxHp, barW) {
@@ -70,10 +70,15 @@ export function drawFrame(ctx, cam, scene, dpr) {
     drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
   }
 
+  if (scene.pickupFx) scene.pickupFx.draw(ctx, scene.now ?? 0, config.boxSize);
+
+  bulletTrails.begin();
   for (const b of bullets.values()) {
     if (outside(b, vr, margin)) continue;
+    bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius);
     drawBullet(ctx, b.x, b.y, config.bulletRadius);
   }
+  bulletTrails.end();
 
   for (const t of tanks.values()) {
     if (outside(t, vr, margin)) continue;
@@ -83,7 +88,7 @@ export function drawFrame(ctx, cam, scene, dpr) {
       barrelLength: config.barrelLength,
       maxHealth: config.maxHealth,
       color: tankColor(category),
-      label: t.bot ? `${t.nick} ${botLabel(t.score)}` : t.nick,
+      label: t.bot ? botLabel(t.nick, t.score, config.botsInRanking) : t.nick,
       labelColor: LABEL_COLORS[category],
       labelPx: 14,
       frame,
