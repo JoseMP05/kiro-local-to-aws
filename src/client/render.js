@@ -4,7 +4,7 @@
 import { visibleWorldRect } from "./camera.js";
 import { createBulletTrails } from "../shared/bullet-trails.js";
 import {
-  PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel,
+  PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel, BULLET_COLORS,
 } from "../shared/sprites.js";
 
 export { botLabel };
@@ -75,8 +75,9 @@ export function drawFrame(ctx, cam, scene, dpr) {
   bulletTrails.begin();
   for (const b of bullets.values()) {
     if (outside(b, vr, margin)) continue;
-    bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius);
-    drawBullet(ctx, b.x, b.y, config.bulletRadius);
+    const colors = b.own ? BULLET_COLORS.own : BULLET_COLORS.other;
+    bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius, colors.trail);
+    drawBullet(ctx, b.x, b.y, config.bulletRadius, colors);
   }
   bulletTrails.end();
 

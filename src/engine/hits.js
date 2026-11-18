@@ -68,6 +68,8 @@ export function resolveHits(env) {
         // La Bala se elimina sin daño (Req. 9.5, 10.7).
       } else {
         hitTank.hp -= damage;
+        hitTank.lastDamageTick = env.tick;
+        hitTank.regenAcc = 0;
         hitTank.lastHit = { ownerId: b.ownerId, ownerNick: b.ownerNick };
         if (hitTank.hp <= 0) {
           hitTank.hp = 0;

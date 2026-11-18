@@ -17,7 +17,7 @@ export function createBulletTrails({ maxLength = 7 } = {}) {
   }
 
   /** Registra la posición actual de una Bala y dibuja su estela (sin la cabeza). */
-  function drawFor(ctx, id, x, y, r) {
+  function drawFor(ctx, id, x, y, r, color) {
     let tr = trails.get(id);
     if (!tr) {
       tr = { xs: [], ys: [], seen: gen };
@@ -35,7 +35,7 @@ export function createBulletTrails({ maxLength = 7 } = {}) {
       }
     }
     // La cola excluye la posición actual (ahí se dibuja la Bala).
-    drawBulletTrail(ctx, tr.xs, tr.ys, r, tr.xs.length - 1);
+    drawBulletTrail(ctx, tr.xs, tr.ys, r, tr.xs.length - 1, color);
   }
 
   /** Llamar al terminar cada cuadro: descarta estelas de Balas que ya no existen. */

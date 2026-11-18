@@ -80,7 +80,7 @@
     "rate": { "default": 30, "min": 1, "max": 120, "integer": true }
   },
   "tank": {
-    "speed": { "default": 200, "min": 1, "max": 2000 },
+    "speed": { "default": 240, "min": 1, "max": 2000 },
     "size": { "default": 40, "min": 8, "max": 200 },
     "barrelLength": { "default": 32, "min": 1, "max": 200 },
     "maxHealth": { "default": 100, "min": 1, "max": 1000, "integer": true },
@@ -88,6 +88,10 @@
       "first": { "default": 30, "min": 0, "max": 100, "integer": true },
       "podium": { "default": 20, "min": 0, "max": 100, "integer": true },
       "top10": { "default": 10, "min": 0, "max": 100, "integer": true }
+    },
+    "regen": {
+      "perS": { "default": 4, "min": 0, "max": 1000 },
+      "delayS": { "default": 4, "min": 0, "max": 60 }
     },
     "respawnS": { "default": 3, "min": 0.5, "max": 60 },
     "protectionS": { "default": 3, "min": 0, "max": 10 },

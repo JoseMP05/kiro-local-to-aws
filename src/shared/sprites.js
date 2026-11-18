@@ -534,21 +534,26 @@ export function drawCrate(ctx, x, y, size, frame = 0, kind = "puntos") {
  * Bala: contorno oscuro, bola naranja y núcleo amarillo-blanco brillante. Se
  * distingue de la moneda amarilla de las Cajas y del detalle del suelo.
  */
-export function drawBullet(ctx, x, y, r) {
+/** Colores de Bala: las del resto (naranja) y las propias (verde, como el Tanque propio). */
+export const BULLET_COLORS = {
+  other: { outline: "#1a0600", body: "#ff6d00", glow: "#ffe082", core: "#ffffff", trail: "#ffab40" },
+  own: { outline: "#002410", body: "#00c853", glow: "#b9f6ca", core: "#ffffff", trail: "#69f0ae" },
+};
+export function drawBullet(ctx, x, y, r, colors = BULLET_COLORS.other) {
   const d = Math.max(2, Math.round(r));
   x = Math.round(x);
   y = Math.round(y);
   // Contorno oscuro en cruz: da forma redondeada sin perder el aspecto de píxel.
-  ctx.fillStyle = "#1a0600";
+  ctx.fillStyle = colors.outline;
   ctx.fillRect(x - d - 2, y - d, 2 * d + 4, 2 * d);
   ctx.fillRect(x - d, y - d - 2, 2 * d, 2 * d + 4);
   ctx.fillRect(x - d - 1, y - d - 1, 2 * d + 2, 2 * d + 2);
-  ctx.fillStyle = "#ff6d00";
+  ctx.fillStyle = colors.body;
   ctx.fillRect(x - d, y - d + 1, 2 * d, 2 * d - 2);
   ctx.fillRect(x - d + 1, y - d, 2 * d - 2, 2 * d);
-  ctx.fillStyle = "#ffe082";
+  ctx.fillStyle = colors.glow;
   ctx.fillRect(x - d + 2, y - d + 2, 2 * d - 4, 2 * d - 4);
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = colors.core;
   ctx.fillRect(x - Math.ceil(d / 2), y - Math.ceil(d / 2), d, d);
 }
 
@@ -559,9 +564,9 @@ export function drawBullet(ctx, x, y, r) {
  * @param {number} r radio de la Bala
  * @param {number} [n] cuántas posiciones dibujar (las primeras n); por defecto todas
  */
-export function drawBulletTrail(ctx, xs, ys, r, n = xs.length) {
+export function drawBulletTrail(ctx, xs, ys, r, n = xs.length, color = BULLET_COLORS.other.trail) {
   if (n <= 0) return;
-  ctx.fillStyle = "#ffab40";
+  ctx.fillStyle = color;
   for (let i = 0; i < n; i++) {
     const k = (i + 1) / (n + 1); // 0 = cola, 1 = cabeza
     const d = Math.max(1, Math.round(r * (0.35 + 0.6 * k)));

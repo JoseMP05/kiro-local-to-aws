@@ -38,6 +38,7 @@ export function buildWelcomeConfig(config) {
     botsInRanking: config.bots.inRanking,
     boxPoints: config.boxes.points,
     healAmount: config.boxes.healAmount,
+    regenPerS: config.tank.regen.perS,
     // Duración total (ms) de cada efecto, para la barra de tiempo restante del HUD.
     effectDurations: {
       turbo: config.effects.turbo.durationMs,
@@ -121,7 +122,10 @@ export function buildPlayerState(view, tankId, cfg, kills = [], picked = []) {
 
   const bullets = [];
   for (const b of view.bullets) {
-    if (inRect(b.x, b.y, rect)) bullets.push({ id: b.id, x: round(b.x, 1), y: round(b.y, 1) });
+    if (!inRect(b.x, b.y, rect)) continue;
+    const st = { id: b.id, x: round(b.x, 1), y: round(b.y, 1) };
+    if (b.ownerId === tankId) st.own = true; // Balas propias: el cliente las dibuja de otro color
+    bullets.push(st);
   }
   const boxes = [];
   for (const b of view.boxes) {

@@ -78,3 +78,21 @@ test("welcome: incluye los campos que usa el HUD con sus claves exactas", () => 
     assert.ok(Number.isFinite(w[key]), key);
   }
 });
+test("estado del Jugador: solo sus propias Balas llevan own", () => {
+  const { game, config } = makeGame(1, { "tank.protectionS": 0, "boxes.max": 0 });
+  game.requestJoin("c1", "Ana");
+  game.requestJoin("c2", "Beto");
+  game.step();
+  const [ana, beto] = [...game._world.tanks.values()];
+  ana.x = 200; ana.y = 200; beto.x = 200; beto.y = 400;
+  game.setInput(ana.id, { w: false, a: false, s: false, d: false, fire: true, aim: 0 });
+  game.setInput(beto.id, { w: false, a: false, s: false, d: false, fire: true, aim: Math.PI });
+  game.step();
+  const view = game.getView();
+  assert.equal(view.bullets.length, 2);
+  const forAna = buildPlayerState(view, ana.id, config).bullets;
+  assert.equal(forAna.filter((b) => b.own).length, 1);
+  const anaBullet = view.bullets.find((b) => b.ownerId === ana.id);
+  assert.equal(forAna.find((b) => b.own).id, anaBullet.id);
+  for (const b of forAna) assert.ok(!("ownerId" in b), "no se envía el id del dueño");
+});

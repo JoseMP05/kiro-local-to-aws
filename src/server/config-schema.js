@@ -101,7 +101,7 @@ export const CONFIG_SCHEMA = {
   "tick.rate": { type: "number", default: 30, min: 1, max: 120, integer: true },
 
   // --- tank ---
-  "tank.speed": { type: "number", default: 200, min: 1, max: 2000 },
+  "tank.speed": { type: "number", default: 240, min: 1, max: 2000 },
   "tank.size": { type: "number", default: 40, min: 8, max: 200 },
   "tank.barrelLength": { type: "number", default: 32, min: 1, max: 200 },
   "tank.maxHealth": { type: "number", default: 100, min: 1, max: 1000, integer: true },
@@ -109,6 +109,9 @@ export const CONFIG_SCHEMA = {
   "tank.rankHealth.first": { type: "number", default: 30, min: 0, max: 100, integer: true },
   "tank.rankHealth.podium": { type: "number", default: 20, min: 0, max: 100, integer: true },
   "tank.rankHealth.top10": { type: "number", default: 10, min: 0, max: 100, integer: true },
+  // Regeneración de vida: puntos por segundo, tras `delayS` segundos sin recibir daño (0 = desactivada).
+  "tank.regen.perS": { type: "number", default: 4, min: 0, max: 1000 },
+  "tank.regen.delayS": { type: "number", default: 4, min: 0, max: 60 },
   "tank.respawnS": { type: "number", default: 3, min: 0.5, max: 60 },
   "tank.protectionS": { type: "number", default: 3, min: 0, max: 10 },
   "tank.safeMaxAttempts": { type: "number", default: 30, min: 1, max: 100, integer: true },
