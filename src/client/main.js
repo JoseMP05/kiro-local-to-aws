@@ -4,7 +4,7 @@
 import { encode, decode } from "/shared/protocol.js";
 import { createStateBuffer } from "/shared/interpolation.js";
 import { createInputSampler } from "./input-sampler.js";
-import { computeCamera, screenToWorld } from "./camera.js";
+import { computeCamera, screenToWorld, worldToScreen } from "./camera.js";
 import { drawFrame } from "./render.js";
 import { drawHud, powerupBadges, boxLegend } from "./hud.js";
 import { drawCrtOverlay, drawCrate } from "/shared/sprites.js";
@@ -34,10 +34,12 @@ let lastSendAt = 0;
 let frame = 0;
 let showHelp = true; // panel de controles: visible al entrar, se oculta solo a los 10 s; H lo alterna
 let helpHideAt = 0; // instante (performance.now) del ocultado automático; 0 = sin temporizador
+let showFullRanking = false; // mientras se mantiene TAB, el Ranking muestra el top 10
 let killedBy = null; // { killer, self }: quién eliminó al Jugador en su muerte actual
 const particles = createParticles();
 const audio = createAudio();
-const killFeed = createKillFeed();
+// En el juego el aviso de eliminaciones es más corto que en la Vista_Espectador para tapar menos.
+const killFeed = createKillFeed({ maxItems: 3, ttlMs: 4000 });
 const pickupFx = createPickupFx();
 let lastShotSoundAt = 0;
 let hitFlashAt = -Infinity; // último daño recibido (para el borde rojo)
@@ -234,6 +236,11 @@ const isTyping = (e) => e.target instanceof HTMLInputElement;
 
 window.addEventListener("keydown", (e) => {
   if (isTyping(e)) return;
+  if (e.code === "Tab") {
+    e.preventDefault(); // que el foco no salte del Canvas
+    showFullRanking = true;
+    return;
+  }
   if (e.code === "KeyH" && !e.repeat) {
     showHelp = !showHelp;
     helpHideAt = 0; // el control manual anula el ocultado automático
@@ -255,10 +262,14 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => {
   if (isTyping(e)) return;
+  if (e.code === "Tab") showFullRanking = false;
   const k = KEYMAP[e.code];
   if (k) sampler.setKey(k, false);
 });
-window.addEventListener("blur", () => sampler.releaseAll());
+window.addEventListener("blur", () => {
+  sampler.releaseAll();
+  showFullRanking = false;
+});
 
 let cursor = { x: 0, y: 0 };
 canvas.addEventListener("mousemove", (e) => {
@@ -291,6 +302,23 @@ function startSendLoop(tickRate) {
 }
 startSendLoop(30); // frecuencia por defecto; el welcome puede ajustarla
 
+/**
+ * Rectángulos en pantalla de lo que importa ver (Tanques con su apodo y barra
+ * de vida, Balas y Cajas). Los paneles del HUD que los tapan se desvanecen.
+ */
+function occupiedRects(cam, scene, cfg) {
+  const out = [];
+  const add = (x, y, half, extraTop = 0) => {
+    const p = worldToScreen(cam, x, y);
+    const r = half * cam.scale;
+    out.push({ x: p.x - r, y: p.y - r - extraTop, w: 2 * r, h: 2 * r + extraTop });
+  };
+  // El apodo y la barra de vida van encima del Tanque (unos 30 px).
+  for (const t of scene.tanks.values()) add(t.x, t.y, cfg.tankSize / 2 + 6, 30);
+  for (const b of scene.bullets.values()) add(b.x, b.y, cfg.bulletRadius + 4);
+  for (const b of scene.boxes.values()) add(b.x, b.y, cfg.boxSize / 2 + 4);
+  return out;
+}
 // --- Bucle de dibujo ---
 
 function draw() {
@@ -345,6 +373,9 @@ function draw() {
     }
     drawHud(ctx, {
       ranking,
+      fullRanking: showFullRanking,
+      occupied: occupiedRects(cam, scene, welcome.config),
+      now,
       killFeed: killFeed.active(now),
       myNick: welcome.nick,
       banner,

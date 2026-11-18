@@ -1,18 +1,21 @@
 // Avisos de eliminación (Cliente_Juego y Vista_Espectador). Cola con
-// expiración de 5 s y máximo 5 avisos; al llegar el sexto se retira el más
-// antiguo. También decide qué rachas de eliminaciones se anuncian. Puro.
+// expiración (5 s por defecto) y un máximo de avisos (5 por defecto); al pasar
+// del máximo se retira el más antiguo. También decide qué rachas de eliminaciones se anuncian. Puro.
 
 const MAX_ITEMS = 5;
 const TTL_MS = 5000;
 
-export function createKillFeed() {
+/**
+ * @param {{ maxItems?: number, ttlMs?: number }} [opts]
+ */
+export function createKillFeed({ maxItems = MAX_ITEMS, ttlMs = TTL_MS } = {}) {
   // Cada item: { victim, killer, streak, expireAt }.
   let items = [];
 
   /** Añade un aviso con la hora actual. `streak` es la racha del autor. */
   function add(victim, killer, nowMs, streak = 0) {
-    items.push({ victim, killer, streak, expireAt: nowMs + TTL_MS });
-    if (items.length > MAX_ITEMS) {
+    items.push({ victim, killer, streak, expireAt: nowMs + ttlMs });
+    if (items.length > maxItems) {
       items.shift(); // retira el más antiguo
     }
   }

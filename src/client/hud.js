@@ -14,19 +14,20 @@ const CONTROLS_W = 330; // ancho del panel de controles y de la leyenda de Cajas
 const PROTECTED_TEXT_GAP = 24; // px entre el texto "PROTEGIDO" y el borde superior de la barra de vida
 
 /**
- * Líneas del Ranking: las 10 primeras entradas y, si la posición propia es > 10,
- * una línea adicional con la posición propia.
+ * Líneas del Ranking: las `limit` primeras entradas y, si la posición propia
+ * queda fuera, una línea adicional con la posición propia.
  * @param {object} ranking { tables: [{ name, entries }], you }
  * @param {string} [myNick] Apodo propio: la fila propia se muestra como "<apodo> (tú)"
+ * @param {number} [limit] cuántas entradas mostrar (10 = completo; 5 = compacto)
  * @returns {Array<{ text: string, position: number, nick: string, score: number, bot: boolean, own: boolean }>}
  */
-export function rankingLines(ranking, myNick) {
+export function rankingLines(ranking, myNick, limit = 10) {
   const lines = [];
   const table = ranking.tables?.[0];
   if (!table) return lines;
   const youPos = ranking.you?.position ?? null;
 
-  for (const e of table.entries.slice(0, 10)) {
+  for (const e of table.entries.slice(0, limit)) {
     const mark = e.bot ? " BOT" : "";
     const own = youPos !== null && e.position === youPos;
     lines.push({
@@ -35,7 +36,7 @@ export function rankingLines(ranking, myNick) {
     });
   }
 
-  if (youPos !== null && youPos > 10) {
+  if (youPos !== null && youPos > limit) {
     const nick = myNick || "";
     lines.push({
       text: `${[`${youPos}.`, nick, "(tú)"].filter(Boolean).join(" ")} — ${ranking.you.score}`,
@@ -89,6 +90,7 @@ export const CONTROLS = [
   { keys: ["W", "A", "S", "D"], action: "MOVER (O FLECHAS)" },
   { keys: ["RATÓN"], action: "APUNTAR" },
   { keys: ["CLIC"], action: "DISPARAR" },
+  { keys: ["TAB"], action: "VER TOP 10" },
   { keys: ["M"], action: "SONIDO SÍ/NO" },
   { keys: ["N"], action: "MÚSICA SÍ/NO" },
   { keys: ["H"], action: "OCULTAR AYUDA" },
@@ -109,21 +111,69 @@ export function boxLegend(cfg = {}) {
     { kind: "botiquin", name: "BOTIQUÍN", text: `+${cfg.healAmount ?? 0} VIDA`, color: "#69f0ae" },
   ];
 }
+// --- Paneles que se desvanecen (minimapa, Ranking, avisos, ayuda) ---
+/** Opacidad de un panel cuando hay algo del juego debajo. */
+export const FADED_ALPHA = 0.25;
+const FADE_MS = 150; // tiempo aproximado de la transición
+/** ¿Se superponen dos rectángulos { x, y, w, h }? */
+export function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+/**
+ * Siguiente opacidad de un panel: se acerca a FADED_ALPHA si está tapando algo
+ * y a 1 si no, de forma suave para que no parpadee con una Bala que pasa.
+ */
+export function fadeAlpha(prev, covered, dtMs) {
+  const target = covered ? FADED_ALPHA : 1;
+  const k = Math.max(0, Math.min(1, dtMs / FADE_MS));
+  return prev + (target - prev) * k;
+}
+const panelAlpha = new Map(); // id de panel -> opacidad actual
+let lastHudAt = null;
+/** Ejecuta `draw` con la opacidad del panel `id`, según si `rect` tapa algo de `occupied`. */
+function withFade(ctx, id, rect, occupied, dtMs, draw) {
+  const covered = occupied.some((r) => rectsOverlap(r, rect));
+  const alpha = fadeAlpha(panelAlpha.get(id) ?? 1, covered, dtMs);
+  panelAlpha.set(id, alpha);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  draw();
+  ctx.restore();
+}
 /**
  * Dibuja todo el HUD.
  * @param {CanvasRenderingContext2D} ctx
  * @param {object} scene { ranking, respawnTick, estimatedTick, tickRate, showHelp, minimap, frame,
- *   killFeed, myNick, banner, hitFlash, boxLegend, regenPerS }
+ *   killFeed, myNick, banner, hitFlash, boxLegend, regenPerS, fullRanking, occupied, now }
+ *   `occupied`: rectángulos en pantalla de lo que hay en el juego (Tanques, Balas, Cajas);
+ *   los paneles que los tapan se vuelven casi transparentes.
  * @param {{ w: number, h: number }} screen tamaño en px CSS
  */
 export function drawHud(ctx, scene, screen) {
   ctx.save();
   if (scene.hitFlash > 0) drawHitFlash(ctx, scene.hitFlash, screen);
-  if (scene.minimap) drawMinimap(ctx, scene.minimap, MARGIN, MARGIN);
-  if (scene.ranking) drawRanking(ctx, scene, screen);
+  const occupied = scene.occupied ?? [];
+  const now = scene.now ?? 0;
+  const dtMs = lastHudAt === null ? 0 : Math.max(0, now - lastHudAt);
+  lastHudAt = now;
+  if (scene.minimap) {
+    const rect = minimapRect(scene.minimap.arena, MARGIN, MARGIN);
+    withFade(ctx, "minimap", rect, occupied, dtMs, () => drawMinimap(ctx, scene.minimap, MARGIN, MARGIN));
+  }
+  if (scene.ranking) {
+    const lines = rankingLines(scene.ranking, scene.myNick, scene.fullRanking ? 10 : RANKING_COMPACT);
+    const rect = rankingLayout(lines.length, screen);
+    withFade(ctx, "ranking", rect, occupied, dtMs, () => drawRanking(ctx, lines, rect, !scene.fullRanking));
+  }
   if (scene.showHelp) {
-    const top = drawControls(ctx, screen);
-    if (scene.boxLegend?.length) drawBoxLegend(ctx, scene.boxLegend, top, scene.regenPerS > 0);
+    const showRegen = scene.regenPerS > 0;
+    const legendH = scene.boxLegend?.length ? boxLegendHeight(scene.boxLegend.length, showRegen) + 12 : 0;
+    const ch = controlsHeight();
+    const rect = { x: MARGIN, y: screen.h - ch - MARGIN - 4 - legendH, w: CONTROLS_W + 4, h: ch + legendH + 4 };
+    withFade(ctx, "help", rect, occupied, dtMs, () => {
+      const top = drawControls(ctx, screen);
+      if (scene.boxLegend?.length) drawBoxLegend(ctx, scene.boxLegend, top, showRegen);
+    });
   } else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
   if (scene.ownHealth) drawOwnHealth(ctx, scene.ownHealth, screen);
@@ -133,7 +183,10 @@ export function drawHud(ctx, scene, screen) {
     drawOutlinedText(ctx, "PROTEGIDO · AÚN NO PUEDES DISPARAR", screen.w / 2, bar.y - PROTECTED_TEXT_GAP, { px: 14, color: "#b3e5fc" });
   }
   if (scene.badges?.length) drawBadges(ctx, scene.badges, screen);
-  if (scene.killFeed?.length) drawKillFeed(ctx, scene.killFeed, scene.myNick, screen);
+  if (scene.killFeed?.length) {
+    const rect = killFeedLayout(ctx, scene.killFeed, screen);
+    withFade(ctx, "killfeed", rect, occupied, dtMs, () => drawKillFeed(ctx, scene.killFeed, scene.myNick, rect));
+  }
   if (scene.banner) drawOutlinedText(ctx, scene.banner.text, screen.w / 2, screen.h * 0.22, { px: 34, color: scene.banner.color });
   ctx.restore();
 }
@@ -151,16 +204,20 @@ function drawHitFlash(ctx, alpha, screen) {
 }
 
 // Últimas eliminaciones arriba en el centro; las del Jugador van resaltadas.
-function drawKillFeed(ctx, feed, myNick, screen) {
+const FEED_LINE_H = HUD_FONT_PX + 8;
+const FEED_PAD = 8;
+function killFeedLayout(ctx, feed, screen) {
   setFont(ctx);
-  const lineH = HUD_FONT_PX + 8;
-  const pad = 8;
   let w = 0;
   for (const it of feed) w = Math.max(w, ctx.measureText(killFeedText(it)).width);
-  w = Math.ceil(w) + pad * 2;
-  const h = pad * 2 + feed.length * lineH - 8;
-  const x = Math.round((screen.w - w) / 2);
-  const y = MARGIN;
+  w = Math.ceil(w) + FEED_PAD * 2;
+  const h = FEED_PAD * 2 + feed.length * FEED_LINE_H - 8;
+  return { x: Math.round((screen.w - w) / 2), y: MARGIN, w, h };
+}
+function drawKillFeed(ctx, feed, myNick, { x, y, w, h }) {
+  setFont(ctx);
+  const lineH = FEED_LINE_H;
+  const pad = FEED_PAD;
   drawPanel(ctx, x, y, w, h);
   let ly = y + pad;
   for (const it of feed) {
@@ -195,20 +252,29 @@ export function fitText(ctx, text, maxW) {
 
 const MEDALS = ["#ffd54f", "#cfd8dc", "#ffab91"];
 
-function drawRanking(ctx, scene, screen) {
-  const ranking = scene.ranking;
-  const lines = rankingLines(ranking, scene.myNick);
-  const pad = 12;
-  const lineH = HUD_FONT_PX + 6;
+/** Entradas del Ranking en modo compacto (con TAB se ven las 10). */
+export const RANKING_COMPACT = 5;
+const RANK_PAD = 12;
+const RANK_LINE_H = HUD_FONT_PX + 6;
+/** Posición y tamaño del panel de Ranking para `n` líneas (mínimo una, "SIN JUGADORES"). */
+export function rankingLayout(n, screen) {
   const w = 260;
-  const h = pad * 2 + lineH * (lines.length + 1) + 4;
-  const x = screen.w - w - MARGIN - 4;
-  const y = MARGIN;
+  const h = RANK_PAD * 2 + RANK_LINE_H * (Math.max(1, n) + 1) + 4;
+  return { x: screen.w - w - MARGIN - 4, y: MARGIN, w, h };
+}
+function drawRanking(ctx, lines, { x, y, w, h }, compact) {
+  const pad = RANK_PAD;
+  const lineH = RANK_LINE_H;
   drawPanel(ctx, x, y, w, h);
-
   setFont(ctx);
   ctx.fillStyle = PALETTE.accent;
   ctx.fillText("RANKING", x + pad, y + pad);
+  if (compact) {
+    ctx.fillStyle = "#9e9e9e";
+    ctx.textAlign = "right";
+    ctx.fillText("TAB: TOP 10", x + w - pad, y + pad);
+    ctx.textAlign = "left";
+  }
 
   let ly = y + pad + lineH + 4;
   if (lines.length === 0) {
@@ -241,6 +307,13 @@ function drawRanking(ctx, scene, screen) {
   ctx.textAlign = "left";
 }
 
+const MINIMAP_PAD = 10;
+const MINIMAP_TITLE_H = HUD_FONT_PX + 8;
+/** Rectángulo en pantalla del minimapa (incluye la sombra del panel). */
+export function minimapRect(arena, x, y) {
+  const L = minimapLayout(arena, 210, 140);
+  return { x, y, w: L.w + MINIMAP_PAD * 2 + 4, h: L.h + MINIMAP_PAD * 2 + MINIMAP_TITLE_H + 4 };
+}
 /**
  * Minimapa con la Arena completa, los Obstáculos, la zona que ve el Jugador y
  * las entidades que conoce el cliente (solo recibe las de su Área_Interés).
@@ -250,8 +323,8 @@ export function drawMinimap(ctx, mm, x, y) {
   const { arena, obstacles, cam, tanks, boxes, ownId, self, frame = 0 } = mm;
   const L = minimapLayout(arena, 210, 140);
   const s = L.scale;
-  const pad = 10;
-  const titleH = HUD_FONT_PX + 8;
+  const pad = MINIMAP_PAD;
+  const titleH = MINIMAP_TITLE_H;
   drawPanel(ctx, x, y, L.w + pad * 2, L.h + pad * 2 + titleH);
 
   setFont(ctx);
@@ -335,11 +408,15 @@ export function drawMinimap(ctx, mm, x, y) {
   ctx.restore();
 }
 
+// La fila de movimiento ocupa dos alturas (W encima de A S D).
+const controlsHeight = () => 12 * 2 + HUD_FONT_PX + 10 + (HUD_FONT_PX + 16) * (CONTROLS.length + 1);
+const LEGEND_ROW_H = 40;
+const boxLegendHeight = (n, showRegen) => 12 * 2 + HUD_FONT_PX + 10 + LEGEND_ROW_H * n + (showRegen ? HUD_FONT_PX + 10 : 0);
 function drawControls(ctx, screen) {
   const pad = 12;
   const rowH = HUD_FONT_PX + 16;
   const w = CONTROLS_W;
-  const h = pad * 2 + HUD_FONT_PX + 10 + rowH * (CONTROLS.length + 1);
+  const h = controlsHeight();
   const x = MARGIN;
   const y = screen.h - h - MARGIN - 4;
   drawPanel(ctx, x, y, w, h);
@@ -378,11 +455,10 @@ function drawControls(ctx, screen) {
  */
 function drawBoxLegend(ctx, rows, bottom, showRegen) {
   const pad = 12;
-  const rowH = 40;
+  const rowH = LEGEND_ROW_H;
   const crate = 26;
-  const noteH = showRegen ? HUD_FONT_PX + 10 : 0;
   const w = CONTROLS_W;
-  const h = pad * 2 + HUD_FONT_PX + 10 + rowH * rows.length + noteH;
+  const h = boxLegendHeight(rows.length, showRegen);
   const x = MARGIN;
   const y = bottom - h - 12;
   drawPanel(ctx, x, y, w, h);
