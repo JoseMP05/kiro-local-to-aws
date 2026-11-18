@@ -89,6 +89,7 @@ export const CONTROLS = [
   { keys: ["RATÓN"], action: "APUNTAR" },
   { keys: ["CLIC"], action: "DISPARAR" },
   { keys: ["M"], action: "SONIDO SÍ/NO" },
+  { keys: ["N"], action: "MÚSICA SÍ/NO" },
   { keys: ["H"], action: "OCULTAR AYUDA" },
 ];
 
