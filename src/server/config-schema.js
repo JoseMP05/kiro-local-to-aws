@@ -111,8 +111,7 @@ export const CONFIG_SCHEMA = {
   "tank.rankHealth.top10": { type: "number", default: 10, min: 0, max: 100, integer: true },
   "tank.respawnS": { type: "number", default: 3, min: 0.5, max: 60 },
   "tank.protectionS": { type: "number", default: 2, min: 0, max: 10 },
-  "tank.safeDistance": { type: "number", default: 300, min: 0, max: 20000 },
-  "tank.safeMaxAttempts": { type: "number", default: 30, min: 1, max: 1000, integer: true },
+  "tank.safeMaxAttempts": { type: "number", default: 30, min: 1, max: 100, integer: true },
 
   // --- bullet ---
   "bullet.speed": { type: "number", default: 600, min: 1, max: 5000 },

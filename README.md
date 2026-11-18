@@ -37,7 +37,7 @@ npm test
 
 - Cada tanque tiene 100 de vida y cada bala quita 10. Si tienes puntos y estás en el top 10, tienes vida extra: +30 si eres el líder, +20 en 2.º y 3.º puesto, +10 del 4.º al 10.º. Los tanques con vida extra muestran la barra con borde dorado.
 - Puedes disparar cada 0,3 s y tener hasta 5 balas en el aire. Las balas duran 3 s, rebotan hasta 3 veces y también te dañan a ti.
-- Eliminar a otro tanque suma puntos (bonus extra si es el líder). Al morir pierdes la cuarta parte de tus puntos y reapareces a los 3 segundos con 2 segundos de protección.
+- Eliminar a otro tanque suma puntos (bonus extra si es el líder). Al morir pierdes la cuarta parte de tus puntos y reapareces a los 3 segundos, en un punto lejos de los demás, con 2 segundos de protección.
 - Las eliminaciones seguidas forman una racha: a las 3, 5 y cada 5 más se anuncia en pantalla.
 - Las cajas aparecen en el mapa:
   - **Caja de madera con moneda**: suma puntos.
