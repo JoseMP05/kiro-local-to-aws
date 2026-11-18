@@ -437,7 +437,7 @@ export function createGame({ config, rng, bots, log }) {
     }
     const bullets = [];
     for (const b of world.bullets.values()) {
-      bullets.push({ id: b.id, x: b.x, y: b.y });
+      bullets.push({ id: b.id, x: b.x, y: b.y, ownerId: b.ownerId });
     }
     const boxes = [];
     for (const b of world.boxes.values()) {
