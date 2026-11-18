@@ -31,7 +31,8 @@ let deathFocus = null;
 let lastState = null;
 let lastSendAt = 0;
 let frame = 0;
-let showHelp = true; // panel de controles visible hasta que se pulse H
+let showHelp = true; // panel de controles: visible al entrar, se oculta solo a los 10 s; H lo alterna
+let helpHideAt = 0; // instante (performance.now) del ocultado automático; 0 = sin temporizador
 let killedBy = null; // { killer, self }: quién eliminó al Jugador en su muerte actual
 const particles = createParticles();
 const audio = createAudio();
@@ -41,6 +42,7 @@ let hitFlashAt = -Infinity; // último daño recibido (para el borde rojo)
 let banner = null; // { text, color, until }: anuncio de racha propia
 const HIT_FLASH_MS = 350;
 const BANNER_MS = 2200;
+const HELP_AUTO_HIDE_MS = 10000;
 
 function dpr() {
   return Math.min(window.devicePixelRatio || 1, 2);
@@ -172,6 +174,9 @@ function showJoin() {
 function showGame() {
   joinScreen.classList.add("hidden");
   disconnectScreen.classList.add("hidden");
+  // La ayuda se muestra al entrar y se oculta sola; no vuelve a aparecer al reaparecer.
+  showHelp = true;
+  helpHideAt = performance.now() + HELP_AUTO_HIDE_MS;
 }
 function showDisconnect() {
   disconnectScreen.classList.remove("hidden");
@@ -202,6 +207,7 @@ window.addEventListener("keydown", (e) => {
   if (isTyping(e)) return;
   if (e.code === "KeyH" && !e.repeat) {
     showHelp = !showHelp;
+    helpHideAt = 0; // el control manual anula el ocultado automático
     return;
   }
   if (e.code === "KeyM" && !e.repeat) {
@@ -299,6 +305,10 @@ function draw() {
       : deathFocus ? { x: deathFocus.x, y: deathFocus.y, dead: true } : null;
     const now = performance.now();
     if (banner && now >= banner.until) banner = null;
+    if (helpHideAt && now >= helpHideAt) {
+      showHelp = false;
+      helpHideAt = 0;
+    }
     drawHud(ctx, {
       ranking,
       killFeed: killFeed.active(now),
