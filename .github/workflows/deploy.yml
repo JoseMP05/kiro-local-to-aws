@@ -10,6 +10,9 @@ name: Desplegar
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "charla/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
