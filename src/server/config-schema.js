@@ -138,6 +138,10 @@ export const CONFIG_SCHEMA = {
   "boxes.powerupChance": { type: "number", default: 0.45, min: 0, max: 1 },
   // Vida que recupera el botiquín (sin pasar de la vida máxima).
   "boxes.healAmount": { type: "number", default: 35, min: 1, max: 1000, integer: true },
+  // Peso relativo de cada potenciador al elegir el tipo de una Caja de potenciador.
+  "boxes.powerupWeights.turbo": { type: "number", default: 1, min: 0, max: 1000 },
+  "boxes.powerupWeights.escudo": { type: "number", default: 1, min: 0, max: 1000 },
+  "boxes.powerupWeights.botiquin": { type: "number", default: 2, min: 0, max: 1000 },
 
   // --- bots ---
   "bots.count": { type: "number", default: 0, min: 0, max: 20, integer: true },

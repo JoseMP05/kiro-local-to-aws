@@ -338,6 +338,7 @@ export function createGame({ config, rng, bots, log }) {
         boxIntervalS: config.boxes.intervalS, boxSize: config.boxes.size,
         boxMaxAttempts: config.boxes.maxAttempts, arenaW, arenaH,
         obstacles: world.obstacles, tankSize, powerupChance: config.boxes.powerupChance,
+        powerupWeights: config.boxes.powerupWeights,
       },
       rng,
       () => world.nextBoxId++

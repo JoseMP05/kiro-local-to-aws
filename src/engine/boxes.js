@@ -40,7 +40,7 @@ export function trySpawnBox(world, env, rng, nextId) {
   );
   if (!point) return null;
 
-  const box = { id: nextId(), x: point.x, y: point.y, kind: pickKind(env.powerupChance ?? 0, rng) };
+  const box = { id: nextId(), x: point.x, y: point.y, kind: pickKind(env.powerupChance ?? 0, env.powerupWeights, rng) };
   return box;
 }
 
@@ -49,12 +49,22 @@ export const POWERUP_KINDS = ["turbo", "escudo", "botiquin"];
 
 /**
  * Elige el tipo de una Caja nueva. Con probabilidad 0 no consume el rng, de
- * modo que las partidas sin potenciadores se comportan igual que antes.
+ * modo que las partidas sin potenciadores se comportan igual que antes. El
+ * potenciador se elige según `weights` (peso relativo por tipo; por defecto 1).
  */
-function pickKind(powerupChance, rng) {
+export function pickKind(powerupChance, weights, rng) {
   if (powerupChance <= 0) return "puntos";
   if (rng() >= powerupChance) return "puntos";
-  return POWERUP_KINDS[Math.floor(rng() * POWERUP_KINDS.length)];
+  const w = POWERUP_KINDS.map((k) => Math.max(0, weights?.[k] ?? 1));
+  const total = w.reduce((a, b) => a + b, 0);
+  const r = rng();
+  if (total <= 0) return "puntos";
+  let acc = r * total;
+  for (let i = 0; i < POWERUP_KINDS.length; i++) {
+    if (acc < w[i]) return POWERUP_KINDS[i];
+    acc -= w[i];
+  }
+  return POWERUP_KINDS[POWERUP_KINDS.length - 1];
 }
 
 /**
