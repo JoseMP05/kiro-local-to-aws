@@ -101,7 +101,7 @@ export const CONFIG_SCHEMA = {
   "tick.rate": { type: "number", default: 30, min: 1, max: 120, integer: true },
 
   // --- tank ---
-  "tank.speed": { type: "number", default: 200, min: 1, max: 2000 },
+  "tank.speed": { type: "number", default: 240, min: 1, max: 2000 },
   "tank.size": { type: "number", default: 40, min: 8, max: 200 },
   "tank.barrelLength": { type: "number", default: 32, min: 1, max: 200 },
   "tank.maxHealth": { type: "number", default: 100, min: 1, max: 1000, integer: true },

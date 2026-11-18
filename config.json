@@ -80,7 +80,7 @@
     "rate": { "default": 30, "min": 1, "max": 120, "integer": true }
   },
   "tank": {
-    "speed": { "default": 200, "min": 1, "max": 2000 },
+    "speed": { "default": 240, "min": 1, "max": 2000 },
     "size": { "default": 40, "min": 8, "max": 200 },
     "barrelLength": { "default": 32, "min": 1, "max": 200 },
     "maxHealth": { "default": 100, "min": 1, "max": 1000, "integer": true },
