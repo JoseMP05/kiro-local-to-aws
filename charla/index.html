@@ -1,596 +1,379 @@
-<title>De Local a AWS con Kiro</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>De local a AWS con Kiro</title>
+<meta name="description" content="Charla en la Universidad Nacional: de un juego en localhost a AWS con Kiro y Spec-Driven Development.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
-<style>
-/* Layout: guion de operación. Columna de lectura con índice fijo a la izquierda en escritorio;
-   cada fase es un bloque con su reloj de charla, sus prompts copiables y su "qué revisar". */
-:root {
-  --bg: #eef0ea;          /* papel de mapa, con un toque verde oliva */
-  --surface: #f8f9f5;
-  --ink: #1d2420;
-  --muted: #5b655e;
-  --line: #cfd5cb;
-  --accent: #7a4fd6;      /* Kiro */
-  --accent-ink: #ffffff;
-  --aws: #c86a12;         /* AWS */
-  --ok: #2f7d4f;
-  --warn: #a5560b;
-  --code-bg: #1f2622;
-  --code-fg: #e6ebe4;
-  --font-display: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
-  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #141916; --surface: #1b211e; --ink: #e4e9e2; --muted: #9aa59d; --line: #2e3631;
-    --accent: #a685f0; --accent-ink: #160d2b; --aws: #f0a04b; --ok: #6cc690; --warn: #f0a04b;
-    --code-bg: #0d110f; --code-fg: #e6ebe4; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #141916; --surface: #1b211e; --ink: #e4e9e2; --muted: #9aa59d; --line: #2e3631;
-  --accent: #a685f0; --accent-ink: #160d2b; --aws: #f0a04b; --ok: #6cc690; --warn: #f0a04b;
-  --code-bg: #0d110f; --code-fg: #e6ebe4; color-scheme: dark;
-}
-
-* { box-sizing: border-box; }
-body {
-  background: var(--bg); color: var(--ink);
-  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 0 64px;
-}
-a { color: var(--accent); }
-a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0; }
-h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; letter-spacing: -0.01em; }
-h2 { font-size: 1.75rem; font-weight: 600; }
-h3 { font-size: 1.15rem; font-weight: 600; }
-p { margin: 0; }
-code { font-family: var(--font-mono); font-size: 0.88em; background: color-mix(in srgb, var(--line) 55%, transparent); padding: 0.1em 0.35em; border-radius: 4px; }
-.eyebrow { font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
-
-.shell { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; }
-@media (max-width: 900px) { .shell { grid-template-columns: minmax(0, 1fr); gap: 0; } nav.toc { display: none; } }
-
-nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; padding-top: 40px; }
-nav.toc ol { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; counter-reset: toc; }
-nav.toc li { counter-increment: toc; }
-nav.toc a { display: grid; grid-template-columns: 28px 1fr; text-decoration: none; color: var(--muted); padding: 5px 8px; border-radius: 6px; font-size: 0.92rem; }
-nav.toc a::before { content: counter(toc, decimal-leading-zero); font-family: var(--font-mono); font-size: 0.75rem; padding-top: 3px; }
-nav.toc a:hover { color: var(--ink); background: var(--surface); }
-
-main { display: grid; gap: 72px; padding-top: 40px; min-width: 0; }
-section { display: grid; gap: 20px; min-width: 0; scroll-margin-top: 24px; }
-.lede { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
-.prose { max-width: 68ch; display: grid; gap: 12px; }
-
-/* Cabecera */
-header.hero { display: grid; gap: 18px; }
-.hero .tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.tag { font-family: var(--font-mono); font-size: 0.78rem; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); background: var(--surface); }
-.tag.kiro { border-color: var(--accent); color: var(--accent); }
-.tag.aws { border-color: var(--aws); color: var(--aws); }
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; }
-.facts div { padding: 14px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 0 -1px -1px 0; min-width: 0; }
-.facts dt { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-.facts dd { margin: 4px 0 0; font-weight: 500; overflow-wrap: anywhere; }
-
-/* Agenda */
-.agenda { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-.agenda th, .agenda td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.agenda th { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 400; }
-.agenda td:first-child { font-family: var(--font-mono); white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--muted); }
-.scroll { overflow-x: auto; min-width: 0; }
-
-/* Diagrama: el SVG de draw.io tiene fondo blanco, así que va sobre una lámina blanca en ambos temas */
-.diagram { margin: 0; display: grid; gap: 10px; }
-.diagram a { display: block; background: #ffffff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
-.diagram img { display: block; width: 100%; min-width: 760px; height: auto; }
-.diagram figcaption { font-size: 0.85rem; color: var(--muted); }
-
-/* Tabla de servicios */
-.services { width: 100%; border-collapse: collapse; font-size: 0.94rem; min-width: 640px; }
-.services th, .services td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.services th { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 400; }
-.services td:first-child { font-weight: 600; white-space: nowrap; }
-.services td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-
-/* Decisiones */
-.decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-.decision { border-top: 2px solid var(--ink); padding-top: 10px; display: grid; gap: 4px; }
-.decision b { font-family: var(--font-display); font-weight: 600; }
-.decision span { color: var(--muted); font-size: 0.93rem; }
-
-/* Pasos del SDD */
-.phase { display: grid; gap: 16px; padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
-.phase-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
-.phase-head h3 { display: flex; gap: 10px; align-items: baseline; }
-.step-no { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-ink); background: var(--accent); border-radius: 5px; padding: 1px 7px; }
-.clock { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.where { font-size: 0.92rem; color: var(--muted); }
-.where b { color: var(--ink); font-weight: 600; }
-
-.prompt { border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: 10px; overflow: hidden; min-width: 0; }
-.prompt-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); }
-.prompt-bar span { font-family: var(--font-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); }
-.prompt pre, pre.cmd { margin: 0; padding: 14px 16px; font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
-.prompt pre { background: var(--bg); color: var(--ink); }
-.cmdwrap { border-radius: 10px; overflow: hidden; background: var(--code-bg); min-width: 0; }
-.cmdwrap .prompt-bar { background: transparent; border-bottom: 1px solid #ffffff1a; }
-.cmdwrap .prompt-bar span { color: #b9c2bb; }
-pre.cmd { background: var(--code-bg); color: var(--code-fg); white-space: pre; overflow-x: auto; overflow-wrap: normal; }
-
-button.copy { font-family: var(--font-mono); font-size: 0.75rem; border: 1px solid currentColor; background: transparent; color: var(--accent); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
-.cmdwrap button.copy { color: #d7dfd8; }
-button.copy:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
-button.copy.done { color: var(--ok); }
-
-.checks { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.checks li { display: grid; grid-template-columns: 20px 1fr; gap: 8px; font-size: 0.95rem; }
-.checks li::before { content: "▸"; color: var(--accent); font-family: var(--font-mono); }
-.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 24px; }
-.two > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
-.mini { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-
-.callout { border-left: 3px solid var(--warn); padding: 10px 14px; background: color-mix(in srgb, var(--warn) 8%, var(--surface)); border-radius: 0 8px 8px 0; font-size: 0.95rem; display: grid; gap: 4px; }
-.callout.ok { border-left-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
-.callout b { font-family: var(--font-display); }
-
-/* Checklist de preparación (se recuerda en este navegador) */
-.prep { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.prep label { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
-.prep input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); }
-.prep input:checked + span { color: var(--muted); text-decoration: line-through; }
-
-details { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-details > summary { cursor: pointer; padding: 12px 16px; font-family: var(--font-display); font-weight: 600; }
-details > div { padding: 0 16px 16px; display: grid; gap: 12px; }
-
-footer { max-width: 1180px; margin: 64px auto 0; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 16px; }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
-</style>
+<link rel="stylesheet" href="styles.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#contenido">Saltar al contenido</a>
 
 <div class="shell">
-  <nav class="toc" aria-label="Índice">
-    <div class="eyebrow">Guion</div>
+  <nav class="toc" aria-label="Recorrido de la charla">
+    <div class="eyebrow">Recorrido</div>
     <ol>
-      <li><a href="#agenda">Agenda</a></li>
-      <li><a href="#preparacion">Antes de subir</a></li>
-      <li><a href="#arquitectura">Arquitectura</a></li>
-      <li><a href="#sdd">Kiro en modo SDD</a></li>
-      <li><a href="#desplegar">Desplegar y probar</a></li>
-      <li><a href="#prs">PRs del público</a></li>
-      <li><a href="#planb">Plan B</a></li>
-      <li><a href="#limpieza">Limpieza y costos</a></li>
+      <li><a href="#presentacion">La charla</a></li>
+      <li><a href="#speakers">Speakers</a></li>
+      <li><a href="#kiro">¿Qué es Kiro?</a></li>
+      <li><a href="#sdd">Spec-Driven Development</a></li>
+      <li><a href="#instalar">Instalar Kiro</a></li>
+      <li><a href="#specs">Crear las specs</a></li>
+      <li><a href="#ejecutar">Ponerlas en marcha</a></li>
+      <li><a href="#resultado">El juego terminado</a></li>
+      <li><a href="#tunel">Compartir con un túnel</a></li>
+      <li><a href="#aws">Despliegue en AWS</a></li>
     </ol>
   </nav>
 
-  <main>
-    <header class="hero">
-      <div class="eyebrow">Charla · Guion para el presentador</div>
-      <h1>De local a AWS con Kiro</h1>
-      <p class="lede">Tomamos el juego de tanques multijugador que corre en <code>localhost:3000</code> y, con Kiro en modo Spec-Driven Development, lo llevamos a una URL pública en AWS durante la charla. Esta página es el guion: qué decir, qué escribirle a Kiro y qué revisar en cada fase.</p>
-      <div class="tags">
-        <span class="tag kiro">Kiro · Spec mode</span>
-        <span class="tag aws">AWS CDK · TypeScript</span>
-        <span class="tag">ECS Fargate</span>
-        <span class="tag">CloudFront + WebSocket</span>
-        <span class="tag">us-east-1</span>
-      </div>
-      <dl class="facts">
-        <div><dt>Cuenta AWS</dt><dd>Charla-Kiro · 661443221249</dd></div>
-        <div><dt>Región</dt><dd>us-east-1 (N. Virginia)</dd></div>
-        <div><dt>Stack de referencia</dt><dd><code>TankGameRef</code> · rama <code>referencia-aws</code></dd></div>
-        <div><dt>Stack en vivo (Kiro)</dt><dd><code>TankGameLive</code> · rama <code>main</code></dd></div>
-        <div><dt>URL de referencia</dt><dd><a id="ref-url" href="https://dk6drll26dl1g.cloudfront.net/">https://dk6drll26dl1g.cloudfront.net/</a></dd></div>
-        <div><dt>Espectador</dt><dd><a href="https://dk6drll26dl1g.cloudfront.net/espectador">/espectador</a> · <a href="https://dk6drll26dl1g.cloudfront.net/health">/health</a></dd></div>
-      </dl>
-    </header>
+  <main id="contenido">
+    <details class="toc-m">
+      <summary>Recorrido de la charla</summary>
+      <ol>
+        <li><a href="#presentacion">La charla</a></li>
+        <li><a href="#speakers">Speakers</a></li>
+        <li><a href="#kiro">¿Qué es Kiro?</a></li>
+        <li><a href="#sdd">Spec-Driven Development</a></li>
+        <li><a href="#instalar">Instalar Kiro</a></li>
+        <li><a href="#specs">Crear las specs</a></li>
+        <li><a href="#ejecutar">Ponerlas en marcha</a></li>
+        <li><a href="#resultado">El juego terminado</a></li>
+        <li><a href="#tunel">Compartir con un túnel</a></li>
+        <li><a href="#aws">Despliegue en AWS</a></li>
+      </ol>
+    </details>
 
-    <section id="agenda">
-      <div class="eyebrow">01 · Agenda</div>
-      <h2>Cómo se reparte el tiempo</h2>
-      <div class="scroll">
-        <table class="agenda">
-          <thead><tr><th>Minuto</th><th>Bloque</th><th>Qué pasa en pantalla</th></tr></thead>
-          <tbody>
-            <tr><td>00–05</td><td>¿Qué es Kiro?</td><td>IDE agéntico de AWS: modo Vibe vs. modo Spec, steering, hooks, MCP.</td></tr>
-            <tr><td>05–08</td><td>Instalación y créditos</td><td>Descarga desde kiro.dev, inicio de sesión, panel de uso de créditos.</td></tr>
-            <tr><td>08–15</td><td>SDD en 3 archivos</td><td>Abrir <code>.kiro/specs/tank-game-core/</code>: <code>requirements.md</code> (EARS), <code>design.md</code>, <code>tasks.md</code>.</td></tr>
-            <tr><td>15–20</td><td>El juego en local</td><td><code>npm start</code>, el público entra desde el móvil a la IP local o a la URL de referencia; espectador proyectado.</td></tr>
-            <tr><td>20–45</td><td>AWS en vivo con Kiro</td><td>Pasos 1 a 7 de la sección <a href="#sdd">Kiro en modo SDD</a>. El despliegue tarda unos 7 minutos: se aprovecha para explicar la arquitectura.</td></tr>
-            <tr><td>45–55</td><td>Todos a jugar</td><td>URL pública en un QR, espectador en el proyector, prueba de carga opcional.</td></tr>
-            <tr><td>55–60</td><td>PRs y cierre</td><td>Un PR del público: revisión automática, merge y despliegue solo. Preguntas.</td></tr>
-          </tbody>
-        </table>
+    <!-- 1. Presentación -->
+    <section id="presentacion" aria-labelledby="h-presentacion">
+      <header class="hero">
+        <div class="eyebrow">Charla · Universidad Nacional de Colombia</div>
+        <h1 id="h-presentacion">De local a AWS con Kiro</h1>
+        <p class="lede">Tomamos un juego de tanques multijugador que vive en <code>localhost</code> y, trabajando con Kiro y especificaciones, lo llevamos a una URL pública en AWS.</p>
+        <div class="tags">
+          <span class="tag kiro">Kiro · Specs</span>
+          <span class="tag">Node.js 24</span>
+          <span class="tag aws">AWS CDK</span>
+          <span class="tag">GitHub Actions</span>
+        </div>
+      </header>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>Qué vas a aprender</h3>
+          <ul>
+            <li>Qué es Kiro y cómo instalarlo con tu correo institucional.</li>
+            <li>Qué es una spec y qué es AI-DLC, la metodología de AWS.</li>
+            <li>Cómo pasar de un juego local a AWS con CI/CD.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Para quién es</h3>
+          <ul>
+            <li>Estudiantes que ya programan algo y quieren publicarlo.</li>
+            <li>No necesitas experiencia previa en AWS.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Qué te llevas</h3>
+          <ul>
+            <li>Una guía de instalación y un prompt base para empezar.</li>
+            <li>El juego terminado en un repositorio para clonar.</li>
+          </ul>
+        </div>
       </div>
     </section>
 
-    <section id="preparacion">
-      <div class="eyebrow">02 · Antes de subir al escenario</div>
-      <h2>Lista de preparación</h2>
-      <p class="prose">Hazlo la noche anterior y repite la primera casilla una hora antes. Las casillas se quedan marcadas en este navegador.</p>
-      <ul class="prep" id="prep">
-        <li><label><input type="checkbox" id="prep-login"><span>Sesión de AWS activa en la cuenta Charla-Kiro: <code>aws login</code> y luego <code>aws sts get-caller-identity</code>.</span></label></li>
-        <li><label><input type="checkbox" id="prep-bootstrap"><span>CDK ya está inicializado en us-east-1 (<code>CDKToolkit</code> existe). No se hace <code>cdk bootstrap</code> en vivo.</span></label></li>
-        <li><label><input type="checkbox" id="prep-ref"><span>El stack <code>TankGameRef</code> está desplegado y la URL de referencia carga el juego. Es el plan B.</span></label></li>
-        <li><label><input type="checkbox" id="prep-docker"><span>Docker está corriendo (CDK construye la imagen del juego en el portátil).</span></label></li>
-        <li><label><input type="checkbox" id="prep-main"><span>El repositorio está en la rama <code>main</code>, sin la carpeta <code>infra/</code>. Así Kiro no ve la solución de referencia.</span></label></li>
-        <li><label><input type="checkbox" id="prep-kiro"><span>Kiro abierto en el repo, con sesión iniciada y créditos suficientes. Modo <b>Supervised</b> para que el público vea cada cambio.</span></label></li>
-        <li><label><input type="checkbox" id="prep-mcp"><span>(Opcional) Servidor MCP de documentación de AWS configurado en Kiro (ver paso 0).</span></label></li>
-        <li><label><input type="checkbox" id="prep-qr"><span>QR de la URL de referencia preparado; el del stack en vivo se genera al final.</span></label></li>
+    <!-- 2. Speakers -->
+    <section id="speakers" aria-labelledby="h-speakers">
+      <div class="eyebrow">02 · Quiénes somos</div>
+      <h2 id="h-speakers">Speakers</h2>
+      <div class="badges">
+        <div class="cell"><article class="player p1">
+          <div class="p-head"><span class="p-tag" aria-hidden="true">P1</span></div>
+          <div class="p-body">
+            <img class="p-photo" src="img/jose.webp" srcset="img/jose.webp 360w, img/jose-2x.webp 720w" sizes="(min-width: 400px) 168px, 200px" width="360" height="360" loading="lazy" decoding="async" alt="Retrato de Jose Miguel Pulgarin Agudelo">
+            <div class="p-text">
+              <h3>Jose Miguel Pulgarin Agudelo</h3>
+              <p class="role">Frontend Developer</p>
+              <p><span class="pill">Solé</span></p>
+            </div>
+          </div>
+          <div class="p-foot">
+            <a class="btn" href="https://www.linkedin.com/in/jose-miguel-pulgarin/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>Ver LinkedIn</a>
+            <div class="qr-tile"><img src="img/qr-jose.webp" width="400" height="400" loading="lazy" decoding="async" alt="Código QR del perfil de LinkedIn de Jose Miguel Pulgarin Agudelo"></div>
+          </div>
+        </article></div>
+        <div class="cell"><article class="player p2">
+          <div class="p-head"><span class="p-tag" aria-hidden="true">P2</span></div>
+          <div class="p-body">
+            <img class="p-photo" src="img/david.webp" srcset="img/david.webp 360w, img/david-2x.webp 720w" sizes="(min-width: 400px) 168px, 200px" width="360" height="360" loading="lazy" decoding="async" alt="Retrato de David Zapata Naranjo">
+            <div class="p-text">
+              <h3>David Zapata Naranjo</h3>
+              <p class="role">Cloud Engineer</p>
+              <p><span class="pill">Blend</span></p>
+            </div>
+          </div>
+          <div class="p-foot">
+            <a class="btn" href="https://www.linkedin.com/in/david-zapata-naranjo/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg>Ver LinkedIn</a>
+            <div class="qr-tile"><img src="img/qr-david.webp" width="400" height="400" loading="lazy" decoding="async" alt="Código QR del perfil de LinkedIn de David Zapata Naranjo"></div>
+          </div>
+        </article></div>
+      </div>
+    </section>
+
+    <!-- 3. Kiro -->
+    <section id="kiro" aria-labelledby="h-kiro">
+      <div class="eyebrow">03 · Herramienta</div>
+      <h2 id="h-kiro">¿Qué es Kiro y por qué lo elegimos?</h2>
+      <div class="prose">
+        <p><b>Kiro</b> es el IDE con agentes de IA de AWS. Su idea central: antes de escribir código, el agente trabaja sobre una <b>especificación</b> que tú puedes leer, corregir y aprobar.</p>
+        <p><b>¿Por qué Kiro?</b> Gracias al convenio de la Universidad: como estudiante tienes acceso al plan estudiantil.</p>
+      </div>
+      <ul class="chips" aria-label="Qué ofrece Kiro">
+        <li class="chip">Specs: requisitos, diseño y tareas</li>
+        <li class="chip">Contexto del proyecto (steering)</li>
+        <li class="chip">Automatizaciones (hooks)</li>
       </ul>
     </section>
 
-    <section id="arquitectura">
-      <div class="eyebrow">03 · Arquitectura objetivo</div>
-      <h2>Lo que Kiro debería proponer</h2>
-      <p class="prose">Es la arquitectura de la solución de referencia (<code>infra/</code> en la rama <code>referencia-aws</code>). Sirve para contrastar lo que proponga Kiro en vivo. Cada decisión sale del contrato de despliegue del README.</p>
+    <!-- 4. SDD -->
+    <section id="sdd" aria-labelledby="h-sdd">
+      <div class="eyebrow">04 · Metodología</div>
+      <h2 id="h-sdd">Spec-Driven Development</h2>
+      <p class="prose">Una spec tiene tres pasos. Explora cada uno con un ejemplo del juego de tanques.</p>
+
+      <div class="tabs" data-tabs>
+        <div role="tablist" aria-label="Fases de una spec">
+          <button role="tab" type="button" id="tab-req" aria-controls="panel-req" aria-selected="true"><span class="n">1</span>Requirements</button>
+          <button role="tab" type="button" id="tab-design" aria-controls="panel-design" aria-selected="false" tabindex="-1"><span class="n">2</span>Design</button>
+          <button role="tab" type="button" id="tab-tasks" aria-controls="panel-tasks" aria-selected="false" tabindex="-1"><span class="n">3</span>Tasks</button>
+        </div>
+        <div role="tabpanel" id="panel-req" aria-labelledby="tab-req">
+          <h3 class="no-js-label">1 · Requirements</h3>
+          <p><b>Qué debe hacer el sistema</b>, escrito en notación EARS (<i>Easy Approach to Requirements Syntax</i>), una plantilla para redactar requisitos con claridad y sin ambigüedad: <code>WHEN [condición] THE SYSTEM SHALL [comportamiento]</code>. Archivo: <code>requirements.md</code>.</p>
+          <div class="ex"><span class="kw">WHEN</span> a tank collects a shield<br><span class="kw">THE SYSTEM SHALL</span> ignore the next hit it receives.</div>
+        </div>
+        <div role="tabpanel" id="panel-design" aria-labelledby="tab-design">
+          <h3 class="no-js-label">2 · Design</h3>
+          <p><b>Cómo se va a construir</b>: arquitectura, datos e interfaces. Archivo: <code>design.md</code>.</p>
+          <div class="ex"><ul>
+            <li>El servidor guarda el estado de la partida en memoria.</li>
+            <li>Cada cliente envía su input por WebSocket.</li>
+            <li>El escudo es un contador de tiempo en el tanque.</li>
+          </ul></div>
+        </div>
+        <div role="tabpanel" id="panel-tasks" aria-labelledby="tab-tasks">
+          <h3 class="no-js-label">3 · Tasks</h3>
+          <p><b>Los pasos concretos</b>, pequeños y verificables, que Kiro ejecuta uno a uno. Archivo: <code>tasks.md</code>.</p>
+          <div class="ex">
+            <label><input type="checkbox"><span>Add a <code>shield</code> field to the tank state</span></label>
+            <label><input type="checkbox"><span>Ignore damage while the shield is active</span></label>
+            <label><input type="checkbox"><span>Test: a shielded tank takes no damage</span></label>
+          </div>
+        </div>
+      </div>
+
+      <h3>Tres enfoques para trabajar con IA</h3>
+      <div class="grid-auto">
+        <article class="card">
+          <h3>Spec-Driven Development</h3>
+          <p>Antes de generar código, escribes y revisas una especificación: qué debe hacer el sistema, cómo se va a diseñar y cómo se divide el trabajo en tareas.</p>
+          <p>Esa spec es la fuente de verdad que guía la implementación, sea humana o con IA, y contra la que verificas el resultado.</p>
+          <p class="when"><b>Cuándo conviene:</b> funcionalidades que otras personas van a mantener.</p>
+        </article>
+        <article class="card">
+          <h3>AI-DLC</h3>
+          <p>AI-Driven Development Life Cycle, de AWS: la IA es una colaboradora central del equipo.</p>
+          <p>“Los humanos deciden y validan, la IA planifica y ejecuta.”</p>
+          <p>Tres fases: Inception, Construction y Operations.</p>
+          <p>Usa Bolts (horas o días) en lugar de sprints.</p>
+          <p class="when"><b>Cuándo conviene:</b> equipos que quieren que la IA participe en todo el ciclo, con decisiones validadas por personas.</p>
+          <p class="small"><a href="https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/" target="_blank" rel="noopener">Blog de AWS sobre AI-DLC</a></p>
+        </article>
+        <article class="card">
+          <h3>Organic Driven Development (ODD)</h3>
+          <p>La idea: escalar la ceremonia al tamaño del trabajo. Los cambios pequeños y bien entendidos se hacen directamente.</p>
+          <p>Los grandes llevan un único documento vivo para retomar el trabajo sin reconstruir el plan.</p>
+          <p>Las preguntas y revisiones nunca tocan el código hasta que pides un cambio.</p>
+          <p class="when"><b>Cuándo conviene:</b> cuando quieres que el proceso sea proporcional a la tarea.</p>
+          <p class="small">Referencia: <a href="https://github.com/Gentleman-Programming/gentle-ai" target="_blank" rel="noopener">gentle-ai</a></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 5. Instalar -->
+    <section id="instalar" aria-labelledby="h-instalar">
+      <div class="eyebrow">05 · Manos a la obra</div>
+      <h2 id="h-instalar">Instalar Kiro</h2>
+      <p class="prose">Sigue la guía de convenios de Sistemas UNAL: te lleva paso a paso a activar tu plan estudiantil.</p>
+      <a class="btn" href="https://sistemasunal.vercel.app/convenios.html#kiro" target="_blank" rel="noopener">Guía de convenios · Sistemas UNAL</a>
+
+      <h3>Descargar el IDE</h3>
+      <p class="prose">Desde <a href="https://kiro.dev/downloads/" target="_blank" rel="noopener">kiro.dev/downloads</a>: macOS, Windows 10/11 y Linux (x86_64 y ARM64). Inicia sesión con Google, GitHub o AWS Builder ID.</p>
+
+      <h3>Opcional: la CLI</h3>
+      <div class="codeblock">
+        <div class="bar"><span>Terminal · Linux</span><button class="copy" type="button" aria-label="Copiar comando de instalación de la CLI">Copiar</button></div>
+<pre tabindex="0">curl -fsSL https://cli.kiro.dev/install | bash</pre>
+      </div>
+      <p class="small">Luego ejecuta <code>kiro-cli</code> dentro de tu proyecto. Para Windows, consulta la <a href="https://kiro.dev/downloads/" target="_blank" rel="noopener">página de descargas</a>.</p>
+
+      <h3>Créditos</h3>
+      <ul class="facts">
+        <li><b>1.000</b>créditos al mes, 12 meses</li>
+        <li><b>Sin tarjeta</b>de crédito</li>
+        <li><b>No se acumulan</b>los que no uses</li>
+        <li><b>Sin extras</b>en el plan estudiantil</li>
+        <li><b>50 al mes</b>en el plan Free, después</li>
+      </ul>
+      <p class="small">Te contamos en vivo cómo se gastan.</p>
+    </section>
+
+    <!-- 6. Specs -->
+    <section id="specs" aria-labelledby="h-specs">
+      <div class="eyebrow">06 · Manos a la obra</div>
+      <h2 id="h-specs">Crear las especificaciones en Kiro</h2>
+      <p class="prose">Usamos una versión <b>simplificada</b> del juego para que Kiro genere la spec rápido. Copia este prompt y pégalo en un chat de tipo Spec.</p>
+
+      <div class="codeblock prompt">
+        <div class="bar"><span>Prompt base</span><button class="copy" type="button" aria-label="Copiar el prompt base">Copiar</button></div>
+<pre tabindex="0">Crea una spec para un juego de tanques multijugador en el navegador, en una versión simplificada del juego real. Escribe los documentos en español.
+
+Alcance, un requisito por área y en notación EARS:
+1. Unirse a la partida con un apodo.
+2. Mover el tanque.
+3. Disparar con tiempo de recarga.
+4. Colisiones con muros, cajas y límites del mapa.
+5. Daño, vidas y reaparición.
+6. Puntaje por eliminación.
+7. Ranking top 5 en vivo y HUD.
+8. Desconexión de jugadores, GET /health y variable de entorno PORT.
+
+Restricciones técnicas: Node.js 24 con módulos ES; la única dependencia es ws; sin paso de build; el cliente es HTML, CSS y JavaScript plano que sirve el mismo servidor. Un solo mapa.
+Fuera de alcance: power-ups, bots y modo espectador.
+
+Mantén la spec compacta: 8 requisitos, un diseño corto y hasta 12 tareas.
+Empieza por requirements.md.</pre>
+      </div>
+
+      <h3>Qué va a crear Kiro</h3>
+      <div class="grid-3">
+        <div class="card"><h3><code>requirements.md</code></h3><p class="small">Qué debe hacer el juego, en EARS.</p></div>
+        <div class="card"><h3><code>design.md</code></h3><p class="small">Cómo se construye.</p></div>
+        <div class="card"><h3><code>tasks.md</code></h3><p class="small">Los pasos para ejecutar.</p></div>
+      </div>
+      <p class="small">Para empezar, usa “+” en Specs o “Spec” en el chat, elige <i>Feature</i> y luego <i>Requirements-First</i> o <i>Design-First</i>. Kiro te pide revisar cada fase antes de pasar a la siguiente. También existe Quick Spec, que no pide aprobaciones entre fases.</p>
+
+      <p id="mientras"><b>Mientras Kiro trabaja…</b> estas son otras funciones que vale la pena conocer:</p>
+      <div class="grid-3" id="otras-funciones" aria-label="Otras funciones de Kiro">
+        <div class="card"><h3>Steering</h3><p class="small">Conocimiento persistente del proyecto, en archivos markdown de <code>.kiro/steering/</code>.</p></div>
+        <div class="card"><h3>Memory</h3><p class="small">Lleva contexto útil entre sesiones de chat. Se guarda en tu cuenta local, no en el proyecto.</p></div>
+        <div class="card"><h3>Powers</h3><p class="small">Paquetes de herramientas y conocimiento que se activan cuando los necesitas.</p></div>
+        <div class="card"><h3>Hooks y Workflows</h3><p class="small">Los hooks reaccionan a eventos (por ejemplo, al guardar). Los workflows orquestan varios agentes.</p></div>
+      </div>
+    </section>
+
+    <!-- 7. Ejecutar -->
+    <section id="ejecutar" aria-labelledby="h-ejecutar">
+      <div class="eyebrow">07 · Manos a la obra</div>
+      <h2 id="h-ejecutar">Poner en marcha las especificaciones</h2>
+      <ol class="steps">
+        <li><span><b>Revisa cada fase.</b> Lee <code>requirements.md</code> y <code>design.md</code>; usa el botón Review para comentar y pide ajustes antes de aprobar.</span></li>
+        <li><span><b>Abre <code>tasks.md</code>.</b> Kiro muestra una interfaz de ejecución sobre ese archivo.</span></li>
+        <li><span><b>Ejecuta las tareas.</b> Una por una o todas a la vez.</span></li>
+      </ol>
+      <p class="callout ok"><b>Waves.</b> Kiro revisa las dependencias entre las tareas. Las tareas que no dependen entre sí van en la misma wave y pueden ejecutarse en paralelo; las waves se ejecutan una después de otra.</p>
+    </section>
+
+    <!-- 8. Resultado -->
+    <section id="resultado" aria-labelledby="h-resultado" data-branch="main">
+      <div class="eyebrow">08 · Resultado</div>
+      <h2 id="h-resultado">El juego terminado</h2>
+      <p class="prose">La versión final vive en la rama <code data-branch-text>main</code> del repositorio.</p>
+      <a class="btn" href="https://github.com/JoseMP05/kiro-local-to-aws/tree/main" data-branch-link target="_blank" rel="noopener">Ver el repositorio</a>
+      <div class="codeblock">
+        <div class="bar"><span>Terminal</span><button class="copy" type="button" aria-label="Copiar los comandos para ejecutar el juego">Copiar</button></div>
+<pre tabindex="0">git clone https://github.com/JoseMP05/kiro-local-to-aws.git
+cd kiro-local-to-aws
+git switch main
+npm install
+npm start</pre>
+      </div>
+      <p class="prose">Requiere Node.js 24 o superior. Abre <code>http://localhost:3000</code> para jugar y <code>/espectador</code> para ver la partida. Puedes cambiar el puerto con la variable <code>PORT</code>. El estado del servidor está en <code>/health</code>.</p>
+    </section>
+
+    <!-- 9. Túnel -->
+    <section id="tunel" aria-labelledby="h-tunel">
+      <div class="eyebrow">09 · Manos a la obra</div>
+      <h2 id="h-tunel">Probarlo desde tu localhost hacia internet</h2>
+      <div class="prose">
+        <p>Un <b>quick tunnel</b> de Cloudflare publica un servidor local en una URL aleatoria de <code>trycloudflare.com</code>. No necesitas cuenta ni dominio, y sirve para que otras personas prueben tu versión de desarrollo.</p>
+      </div>
+      <div class="callout"><b>Solo para pruebas.</b> Cloudflare lo ofrece para pruebas y desarrollo, sin garantía de disponibilidad. La URL cambia cada vez que lo creas. Para producción hay que usar un Cloudflare Tunnel normal.</div>
+
+      <h3>1. Instala <code>cloudflared</code></h3>
+      <div class="tabs-os">
+        <div class="os"><b>macOS</b><span><code>brew install cloudflared</code></span></div>
+        <div class="os"><b>Windows</b><span>Descarga el instalador <code>cloudflared-windows-amd64.msi</code> (o el <code>.exe</code>) desde las versiones de GitHub.</span></div>
+        <div class="os"><b>Linux</b><span>Paquete <code>.deb</code> o <code>.rpm</code>, o el binario, desde las versiones de GitHub o el repositorio <a href="https://pkg.cloudflare.com/" target="_blank" rel="noopener">pkg.cloudflare.com</a>.</span></div>
+      </div>
+      <p class="small">Todas las opciones: <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/" target="_blank" rel="noopener">documentación de descargas de Cloudflare</a>.</p>
+
+      <h3>2. Con el juego corriendo, abre el túnel</h3>
+      <div class="codeblock">
+        <div class="bar"><span>Terminal</span><button class="copy" type="button" aria-label="Copiar el comando del túnel">Copiar</button></div>
+<pre tabindex="0">cloudflared tunnel --url http://localhost:3000</pre>
+      </div>
+      <p class="prose">Copia la URL <code>trycloudflare.com</code> que aparece en la terminal y compártela. El juego usa WebSockets: Cloudflare Tunnel los soporta según su <a href="https://developers.cloudflare.com/cloudflare-one/faq/cloudflare-tunnels-faq/" target="_blank" rel="noopener">FAQ oficial</a>, y lo probamos en vivo.</p>
+      <p class="small">Documentación: <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/" target="_blank" rel="noopener">quick tunnels (TryCloudflare)</a>.</p>
+    </section>
+
+    <!-- 10. AWS -->
+    <section id="aws" aria-labelledby="h-aws">
+      <div class="eyebrow">10 · Despliegue real · David</div>
+      <h2 id="h-aws">Despliegue en AWS</h2>
+      <p class="prose">Para el despliegue real, Kiro genera la infraestructura como código con AWS CDK. Este es el resumen al que puedes volver.</p>
 
       <figure class="diagram">
-        <a href="arquitectura.svg" target="_blank" rel="noopener"><img src="arquitectura.svg" width="1482" height="891" alt="Diagrama de arquitectura con iconos de AWS: jugadores y proyector se conectan por HTTPS y WSS a Amazon CloudFront; CloudFront entra por el Internet Gateway de la VPC al Application Load Balancer, cuyo security group solo admite la prefix list de CloudFront; el ALB envía al puerto 3000 de una única tarea de ECS Fargate en la subred pública de la zona A. Amazon ECS mantiene una tarea, la imagen viene de Amazon ECR y los logs van a CloudWatch Logs. Desde el portátil con Kiro, cdk deploy crea el stack en CloudFormation y sube la imagen a ECR."></a>
-        <figcaption>Hecho con iconos oficiales de AWS en draw.io. Fuente editable: <code>docs/arquitectura.drawio</code> (ábrelo en app.diagrams.net o en la extensión de draw.io de VS Code / Kiro). También en <code>docs/arquitectura.png</code> para las diapositivas.</figcaption>
+        <a href="arquitectura.svg" target="_blank" rel="noopener"><img src="arquitectura.svg" width="1482" height="891" loading="lazy" decoding="async" alt="Diagrama de arquitectura con iconos de AWS: jugadores y proyector se conectan por HTTPS y WSS a Amazon CloudFront; CloudFront entra por el Internet Gateway de la VPC al Application Load Balancer, cuyo security group solo admite la prefix list de CloudFront; el ALB envía al puerto 3000 de una única tarea de ECS Fargate en la subred pública de la zona A. Amazon ECS mantiene una tarea, la imagen viene de Amazon ECR y los logs van a CloudWatch Logs. Desde el portátil con Kiro, cdk deploy crea el stack en CloudFormation y sube la imagen a ECR."></a>
+        <figcaption>CloudFront → ALB → ECS Fargate (una tarea). Toca el diagrama para verlo completo.</figcaption>
       </figure>
 
       <div class="decisions">
-        <div class="decision"><b>Una sola tarea, también al desplegar</b><span>El estado vive en memoria. <code>desiredCount 1</code>, <code>minHealthyPercent 0</code> y <code>maxHealthyPercent 100</code>: nunca hay dos partidas a la vez.</span></div>
-        <div class="decision"><b>CloudFront delante</b><span>HTTPS sin dominio ni certificado propio. El cliente cambia solo a <code>wss://</code>. Política sin caché y reenvío de todas las cabeceras para el WebSocket.</span></div>
-        <div class="decision"><b>ALB cerrado a CloudFront</b><span>El security group solo admite la prefix list administrada <code>com.amazonaws.global.cloudfront.origin-facing</code>.</span></div>
-        <div class="decision"><b>Despliegues rápidos</b><span>El servidor se apaga en menos de 3 s, así que el deregistration delay baja de 300 s a 5 s. Health check cada 10 s sobre <code>/health</code>.</span></div>
-        <div class="decision"><b>Sin NAT Gateway</b><span>La tarea vive en subred pública con IP pública para bajar la imagen de ECR. Ahorra unos 32 USD al mes.</span></div>
-        <div class="decision"><b>x86_64</b><span>La imagen se construye en el portátil (x86). Evita sorpresas de emulación ARM en directo.</span></div>
+        <div class="decision"><b>Una sola tarea</b><span>El estado de la partida vive en memoria: dos tareas serían dos partidas distintas.</span></div>
+        <div class="decision"><b>CloudFront delante</b><span>HTTPS sin dominio propio; el cliente cambia solo a <code>wss://</code>.</span></div>
+        <div class="decision"><b>ALB cerrado a CloudFront</b><span>Solo acepta tráfico que venga de la CDN.</span></div>
+        <div class="decision"><b>Sin NAT Gateway</b><span>La tarea usa una subred pública para bajar la imagen. Ahorra costo.</span></div>
       </div>
 
+      <h3>CI/CD con GitHub Actions</h3>
       <div class="scroll">
         <table class="services">
-          <thead><tr><th>Servicio</th><th>Para qué</th><th>Por qué este y no otro</th><th>Costo aprox.</th></tr></thead>
+          <thead><tr><th>Cuándo</th><th>Qué hace</th></tr></thead>
           <tbody>
-            <tr><td>ECS Fargate</td><td>Ejecutar el contenedor del juego</td><td>Contenedores sin administrar servidores. Soporta procesos largos y WebSocket, a diferencia de Lambda.</td><td class="num">~1,20 USD/día</td></tr>
-            <tr><td>Application Load Balancer</td><td>Health check, IP estable para CloudFront</td><td>Soporta WebSocket de forma nativa y reemplaza la tarea si deja de responder.</td><td class="num">~0,55 USD/día</td></tr>
-            <tr><td>CloudFront</td><td>HTTPS público y borde global</td><td>Certificado gratuito sin dominio; soporta WebSocket. 1 TB/mes gratis.</td><td class="num">~0 en charla</td></tr>
-            <tr><td>ECR</td><td>Guardar la imagen Docker</td><td>CDK la construye y la sube en el mismo <code>cdk deploy</code>.</td><td class="num">céntimos</td></tr>
-            <tr><td>CloudWatch Logs</td><td>Ver la salida del servidor</td><td>Diagnóstico en vivo con <code>aws logs tail</code>.</td><td class="num">céntimos</td></tr>
-            <tr><td>VPC + IPv4 públicas</td><td>Red aislada</td><td>Sin NAT. Se pagan las IPv4 públicas del ALB y de la tarea.</td><td class="num">~0,36 USD/día</td></tr>
+            <tr><td>Se abre un PR</td><td>Corren las pruebas y una revisión automática con un modelo en Amazon Bedrock, que comenta en las líneas del diff.</td></tr>
+            <tr><td>Merge a <code>main</code></td><td>Pruebas, <code>cdk deploy</code> y comprobación de <code>/health</code>.</td></tr>
           </tbody>
         </table>
       </div>
+      <p class="prose">GitHub Actions entra a AWS con OIDC: no hay claves guardadas en el repositorio.</p>
 
-      <details>
-        <summary>Alternativas que Kiro puede proponer y cómo responder</summary>
-        <div>
-          <p><b>Lambda + API Gateway WebSocket.</b> Obligaría a reescribir el servidor: el bucle de ticks a 30 Hz y el estado en memoria no encajan en funciones efímeras.</p>
-          <p><b>App Runner.</b> No admite conexiones WebSocket, que el juego necesita.</p>
-          <p><b>EC2 con Docker.</b> Más barato, pero hay que parchear el sistema operativo y montar el reinicio automático a mano.</p>
-          <p><b>ECS Express Mode.</b> Crea el ALB y la URL HTTPS solo, y es una buena variante para comparar. Verifica que deje fijar una única tarea antes de usarlo en directo.</p>
-          <p><b>Varias réplicas con autoescalado.</b> Rompe el juego: cada réplica sería una partida distinta. Hace falta estado compartido (por ejemplo ElastiCache) y es otra charla.</p>
-        </div>
-      </details>
-    </section>
-
-    <section id="sdd">
-      <div class="eyebrow">04 · Kiro en modo SDD</div>
-      <h2>Los prompts, en orden</h2>
-      <p class="prose">Cada paso indica dónde escribirlo en Kiro, el texto exacto para copiar y qué revisar antes de aprobar. Kiro genera los tres archivos de la spec en <code>.kiro/specs/aws-infra/</code> y pide aprobación entre fases: es el momento de leerlos en voz alta con el público.</p>
-
-      <!-- Paso 0 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">0</span>Contexto para Kiro (opcional, antes de la charla)</h3><span class="clock">preparación</span></div>
-        <p class="where"><b>Dónde:</b> panel de Kiro → <i>Steering</i> → <i>Generate Steering Docs</i>. Crea <code>.kiro/steering/product.md</code>, <code>tech.md</code> y <code>structure.md</code>, que Kiro lee en cada conversación.</p>
-        <p class="where"><b>MCP de documentación de AWS:</b> en <code>.kiro/settings/mcp.json</code> añade el servidor remoto <i>AWS Knowledge</i> para que Kiro consulte documentación oficial en lugar de recordar de memoria.</p>
-        <div class="cmdwrap">
-          <div class="prompt-bar"><span>.kiro/settings/mcp.json</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">{
-  "mcpServers": {
-    "aws-knowledge": {
-      "url": "https://knowledge-mcp.global.api.aws",
-      "disabled": false
-    }
-  }
-}</pre>
-        </div>
-      </article>
-
-      <!-- Paso 1 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">1</span>Analizar el juego</h3><span class="clock">min 20 · ~2 min</span></div>
-        <p class="where"><b>Dónde:</b> chat de Kiro, sesión <b>Vibe</b>. Solo lectura: no crea archivos.</p>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Analiza este repositorio antes de proponer nada. Quiero llevar el juego de tanques a AWS.
-
-Lee el README (en especial la sección "Contrato de despliegue"), el Dockerfile, src/server/start.js y config.json, y resúmeme en una lista corta:
-- cómo se ejecuta el servidor y en qué puerto,
-- qué protocolos usa (HTTP, WebSocket) y en qué rutas,
-- dónde vive el estado de la partida y qué implica para escalar,
-- qué ofrece para health check y apagado ordenado,
-- qué recursos (CPU, ancho de banda) necesita con 100 jugadores.
-
-No escribas código ni crees archivos todavía.</pre>
-        </div>
-        <div class="two">
-          <div><span class="mini">Qué revisar</span>
-            <ul class="checks">
-              <li>Detecta <b>una sola réplica</b> por el estado en memoria.</li>
-              <li>Ve HTTP y WebSocket en el mismo puerto (<code>/ws/jugador</code>, <code>/ws/espectador</code>).</li>
-              <li>Menciona <code>/health</code>, <code>SIGTERM</code> y el ping cada 10 s.</li>
-            </ul>
-          </div>
-          <div><span class="mini">Qué decir al público</span>
-            <p>“Antes de pedir infraestructura, le pedimos que entienda la aplicación. Todo lo que necesita está en el README porque lo dejamos escrito en la spec anterior.”</p>
-          </div>
-        </div>
-      </article>
-
-      <!-- Paso 2 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">2</span>Crear la spec: requisitos</h3><span class="clock">min 22 · ~4 min</span></div>
-        <p class="where"><b>Dónde:</b> chat de Kiro → nueva sesión <b>Spec</b> (o el botón <i>+</i> en el panel Specs). Nombre sugerido: <code>aws-infra</code>. Kiro escribe <code>requirements.md</code> en formato EARS.</p>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Crea una spec llamada aws-infra para desplegar este juego en AWS. Continúa la spec online-readiness, que dejó el despliegue en AWS fuera de su alcance. Escribe los documentos en español, como las specs que ya existen en .kiro/specs/.
-
-Objetivo: que cualquier persona del público abra una URL pública con HTTPS desde el móvil y juegue, y que el proyector muestre /espectador.
-
-Restricciones (salen del Contrato de despliegue del README):
-- Una sola instancia del servidor en todo momento, también durante un despliegue: dos instancias serían dos partidas.
-- HTTP y WebSocket por el mismo puerto; el WebSocket debe funcionar por HTTPS (wss://).
-- Usar /health como health check y respetar el apagado ordenado con SIGTERM.
-- Usar el Dockerfile que ya existe; no modificar el código del juego.
-- Región us-east-1, cuenta ya inicializada con CDK.
-- Infraestructura como código con AWS CDK en TypeScript dentro de una carpeta infra/.
-- El stack se llama TankGameLive.
-- Sin dominio propio: la URL puede ser la que da AWS.
-- Costo bajo mientras no hay charla, y se tiene que poder borrar todo con un solo comando.
-- Logs del servidor accesibles desde la consola o la CLI.
-
-Empieza solo por requirements.md.</pre>
-        </div>
-        <div class="two">
-          <div><span class="mini">Qué revisar antes de aprobar</span>
-            <ul class="checks">
-              <li>Hay un requisito explícito de “nunca dos tareas a la vez”.</li>
-              <li>WebSocket sobre HTTPS aparece como criterio verificable.</li>
-              <li>Hay requisito de salidas: URL del juego, espectador y health.</li>
-              <li>Hay requisito de borrado completo (<code>cdk destroy</code>).</li>
-            </ul>
-          </div>
-          <div><span class="mini">Si falta algo, pídelo así</span>
-            <div class="prompt">
-              <div class="prompt-bar"><span>Ajuste</span><button class="copy" type="button">Copiar</button></div>
-<pre>Añade dos requisitos: el balanceador solo debe aceptar tráfico que venga de la CDN, y un despliegue nuevo debe tardar poco en drenar conexiones porque el servidor se apaga en menos de 3 segundos.</pre>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Paso 3 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">3</span>Diseño: proponer y explicar la arquitectura</h3><span class="clock">min 26 · ~5 min</span></div>
-        <p class="where"><b>Dónde:</b> misma sesión Spec, después de aprobar los requisitos. Kiro escribe <code>design.md</code>.</p>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Requisitos aprobados. Ahora el design.md:
-
-1. Compara al menos tres opciones de cómputo en AWS para este juego (por ejemplo ECS Fargate, EC2, App Runner, Lambda con API Gateway WebSocket) en una tabla: soporte de WebSocket, estado en memoria, esfuerzo de operación y costo mensual aproximado. Elige una y justifica.
-2. Incluye un diagrama Mermaid de la arquitectura final con el recorrido de una conexión WebSocket desde el navegador hasta el contenedor.
-3. Explica cada servicio elegido en una o dos frases, pensando en un público que no conoce AWS.
-4. Detalla las decisiones de configuración que salen de los requisitos: número de tareas y porcentajes de despliegue, health check, timeouts, seguridad de red y política de caché de la CDN.
-5. Añade una estimación de costo por día con el entorno encendido y sin jugadores.
-
-Consulta la documentación de AWS si tienes la herramienta disponible.</pre>
-        </div>
-        <div class="two">
-          <div><span class="mini">Qué revisar</span>
-            <ul class="checks">
-              <li>Descarta App Runner y Lambda por WebSocket o estado.</li>
-              <li><code>minHealthyPercent 0</code> / <code>maxHealthyPercent 100</code>.</li>
-              <li>CloudFront con <i>CachingDisabled</i> y <i>AllViewer</i>.</li>
-              <li>Security group del ALB con la prefix list de CloudFront.</li>
-              <li>Deregistration delay corto (5–10 s).</li>
-            </ul>
-          </div>
-          <div><span class="mini">Si propone algo distinto</span>
-            <p>Compáralo con la <a href="#arquitectura">arquitectura objetivo</a>. Si es viable (por ejemplo ECS Express Mode), puede ser un buen momento de debate. Si rompe la réplica única o el WebSocket, usa el ajuste:</p>
-            <div class="prompt">
-              <div class="prompt-bar"><span>Ajuste</span><button class="copy" type="button">Copiar</button></div>
-<pre>Revisa el diseño contra el requisito de una sola instancia y WebSocket por HTTPS. Usa CloudFront delante de un Application Load Balancer y una única tarea de ECS Fargate, sin NAT Gateway.</pre>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- Paso 4 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">4</span>Plan de tareas</h3><span class="clock">min 31 · ~2 min</span></div>
-        <p class="where"><b>Dónde:</b> misma sesión Spec. Kiro escribe <code>tasks.md</code> con casillas y referencias a los requisitos.</p>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Diseño aprobado. Genera tasks.md con tareas pequeñas y verificables, cada una con los requisitos que cubre:
-- crear el proyecto CDK en infra/ (TypeScript, sin tocar el resto del repo),
-- red, balanceador, servicio de contenedores y CDN, cada uno en su tarea,
-- salidas del stack con las URL del juego, del espectador y de /health,
-- validar con cdk synth,
-- desplegar con cdk deploy,
-- verificar /health, el juego y el WebSocket con la URL pública,
-- documentar en el README cómo desplegar y cómo destruir.
-
-No marques como opcionales las tareas de despliegue y verificación.</pre>
-        </div>
-      </article>
-
-      <!-- Paso 5 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">5</span>Ejecutar las tareas</h3><span class="clock">min 33 · ~4 min</span></div>
-        <p class="where"><b>Dónde:</b> abre <code>tasks.md</code> y pulsa <i>Start task</i> sobre la primera, o pídelo en el chat. En modo Supervised revisa cada diff con el público.</p>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Ejecuta las tareas de tasks.md en orden hasta la de cdk synth incluida. Después de cada una, dime en una línea qué archivo creaste y qué requisito cubre. Si cdk synth falla, corrige y vuelve a intentarlo.</pre>
-        </div>
-        <div class="callout"><b>Ojo</b><span>Si Kiro intenta hacer <code>cdk bootstrap</code>, no hace falta: la cuenta ya está inicializada. Si pide aprobar comandos de terminal, apruébalos uno a uno para que se vean en pantalla.</span></div>
-      </article>
-
-      <!-- Paso 6 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">6</span>Desplegar</h3><span class="clock">min 37 · ~7–9 min</span></div>
-        <p class="where"><b>Dónde:</b> mismo chat. El comando dura unos 7 minutos, casi todo en CloudFront. Mientras tanto explica la arquitectura con el diagrama.</p>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Ejecuta la tarea de despliegue: cdk deploy TankGameLive desde infra/, sin pedir aprobación interactiva de cambios de IAM. Cuando termine, muéstrame las salidas del stack y marca la tarea como completada.</pre>
-        </div>
-        <div class="callout ok"><b>Mientras esperas</b><span>Abre la consola de CloudFormation → <code>TankGameLive</code> → <i>Events</i> y muestra cómo se crean los recursos. Es el mejor momento para explicar CloudFront, el ALB y Fargate.</span></div>
-      </article>
-
-      <!-- Paso 7 -->
-      <article class="phase">
-        <div class="phase-head"><h3><span class="step-no">7</span>Verificar y compartir la URL</h3><span class="clock">min 46 · ~3 min</span></div>
-        <div class="prompt">
-          <div class="prompt-bar"><span>Prompt</span><button class="copy" type="button">Copiar</button></div>
-<pre>Ejecuta la tarea de verificación con la URL pública: comprueba que /health responde 200 y lanza la prueba de carga con 20 jugadores durante 20 segundos (npm run loadtest con --url wss://...). Resume el resultado y dime si cumple los criterios.</pre>
-        </div>
-        <div class="two">
-          <div><span class="mini">Qué revisar</span>
-            <ul class="checks">
-              <li><code>/health</code> devuelve <code>status: "ok"</code>.</li>
-              <li>La prueba de carga termina con código 0.</li>
-              <li>El juego carga en el móvil y el espectador en el proyector.</li>
-            </ul>
-          </div>
-          <div><span class="mini">Después</span>
-            <p>Genera el QR de la URL de <code>GameUrl</code> y proyéctalo. Deja el espectador a pantalla completa mientras el público juega.</p>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <section id="desplegar">
-      <div class="eyebrow">05 · Desplegar a mano</div>
-      <h2>Comandos de la solución de referencia</h2>
-      <p class="prose">Para preparar la charla o si Kiro se atasca. Se ejecutan desde la rama <code>referencia-aws</code>.</p>
-      <div class="cmdwrap">
-        <div class="prompt-bar"><span>Desplegar TankGameRef</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">git switch referencia-aws
-cd infra
-npm install
-npx cdk synth --strict
-npx cdk deploy TankGameRef --require-approval never --outputs-file cdk-outputs.json</pre>
-      </div>
-      <div class="cmdwrap">
-        <div class="prompt-bar"><span>Probar la URL pública</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">curl -s https://dk6drll26dl1g.cloudfront.net/health
-cd .. && npm run loadtest -- --url wss://dk6drll26dl1g.cloudfront.net --players 100 --spectators 3 --duration 30 --ramp 10</pre>
-      </div>
-      <div class="cmdwrap">
-        <div class="prompt-bar"><span>Ver logs y estado en vivo</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">aws logs tail TankGameRef-Logs6819BB44-gT5TzZ7IIu0d --follow --region us-east-1
-aws ecs describe-services --cluster TankGameRef-ClusterEB0386A7-HWH1bdofGoey --services TankGameRef-ServiceD69D759B-U11sRhxlwLG1 --region us-east-1 \
-  --query 'services[0].{deseadas:desiredCount,corriendo:runningCount,eventos:events[0:3].message}'</pre>
-      </div>
-      <div class="cmdwrap">
-        <div class="prompt-bar"><span>Desplegar una versión nueva del juego</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">cd infra && npx cdk deploy TankGameRef --require-approval never
-# CDK reconstruye la imagen, la sube a ECR y ECS para la tarea vieja antes de arrancar la nueva (~2–3 min)</pre>
-      </div>
-      <p class="prose" id="timings"><b>Tiempos y resultados medidos (12 nov 2026):</b> <code>cdk deploy</code> completo en 6 min 50 s (construcción y subida de la imagen ~1 min, CloudFormation 5 min 50 s). Prueba de carga desde un portátil contra la URL pública con 100 jugadores y 3 espectadores: 100/100 admitidos, 0 cierres, intervalo entre estados p95 35,9 ms, tick máximo 22,6 ms de 33,3 ms de presupuesto, unos 110 KiB/s por jugador. El ALB no responde si se le llama directamente: solo acepta tráfico desde CloudFront.</p>
-    </section>
-
-    <section id="prs">
-      <div class="eyebrow">06 · PRs del público</div>
-      <h2>De un PR a producción, solo</h2>
-      <p class="prose">El repositorio revisa y despliega sin intervención: cada PR recibe pruebas y una revisión automática en español, y cada merge a <code>main</code> actualiza el entorno de la charla. GitHub Actions entra a AWS con OIDC, sin claves guardadas.</p>
-      <div class="scroll">
-        <table class="services">
-          <thead><tr><th>Cuándo</th><th>Workflow</th><th>Qué hace</th><th>Permisos en AWS</th></tr></thead>
-          <tbody>
-            <tr><td>Se abre o actualiza un PR</td><td><code>ci.yml</code></td><td><code>pnpm test</code> con Node 24. Corre también para forks.</td><td>Ninguno</td></tr>
-            <tr><td>Se abre o actualiza un PR</td><td><code>pr-review.yml</code></td><td>Lee el diff por la API (nunca ejecuta el código del PR), lo revisa con Claude Haiku en Amazon Bedrock contra <code>.github/pr-review-guidelines.md</code> y deja un veredicto y comentarios en las líneas. Unos 30 s por PR.</td><td>Rol <code>tank-game-gh-pr-review</code>: solo invocar Claude Haiku</td></tr>
-            <tr><td>Merge a <code>main</code></td><td><code>deploy.yml</code></td><td>Pruebas, <code>cdk deploy</code> y comprobación de <code>/health</code>. Si <code>main</code> ya tiene la <code>infra/</code> de Kiro despliega <code>TankGameLive</code>; si no, <code>TankGameRef</code> con la infra de la rama <code>referencia-aws</code>.</td><td>Rol <code>tank-game-gh-deploy</code>: solo desde <code>main</code>, solo roles de CDK</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="two">
-        <div><span class="mini">En el escenario</span>
-          <ul class="checks">
-            <li>Proyecta el repositorio en GitHub y pide a alguien que abra un PR pequeño (por ejemplo, un efecto nuevo a partir de <code>src/effects/builtin/turbo.js</code>).</li>
-            <li>A los pocos segundos aparecen las pruebas y la revisión automática con sus comentarios.</li>
-            <li>Fusiona el PR y abre la pestaña <i>Actions</i>: el despliegue tarda unos 3 minutos.</li>
-            <li>Avisa antes de fusionar: con una sola tarea, la partida se corta 30–60 s mientras arranca la versión nueva.</li>
-          </ul>
-        </div>
-        <div><span class="mini">AWS DevOps Agent (opcional)</span>
-          <p>Su revisión <i>release readiness</i> también comenta PRs, pero el disparo automático solo funciona en repositorios privados. En este repositorio público se puede mostrar bajo demanda: en su consola, pide la revisión del PR por número. Tarda 8–10 minutos, así que lánzala al empezar este bloque.</p>
-        </div>
-      </div>
-      <details>
-        <summary>Puesta en marcha (una sola vez)</summary>
-        <div>
-          <p>Los roles ya existen en la cuenta (stack <code>TankGameCi</code>). Los workflows no necesitan secretos: los ARN de los roles no son secretos y van escritos en los archivos.</p>
-          <div class="cmdwrap">
-            <div class="prompt-bar"><span>Roles OIDC en AWS (ya desplegado)</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">git switch referencia-aws && cd infra
-npx cdk deploy TankGameCi --require-approval never
-# tank-game-gh-deploy     → solo repo:JoseMP05@87217012/kiro-local-to-aws@1453512857:ref:refs/heads/main
-#                            (formato inmutable de GitHub, con los ID del dueño y del repo)
-# tank-game-gh-pr-review  → solo bedrock:InvokeModel sobre Claude Haiku</pre>
-          </div>
-          <p>Después, alguien con permiso de escritura en el repositorio sube <code>.github/</code> a <code>main</code>. Para subir workflows, el token de <code>gh</code> necesita el permiso <code>workflow</code>: <code>gh auth refresh -s workflow</code>.</p>
-          <p>Variables opcionales del repositorio: <code>REVIEW_MODEL_ID</code> (otro modelo, por ejemplo Haiku 5.5 cuando esté habilitado en la cuenta), <code>DEPLOY_STACK</code> e <code>INFRA_REF</code> (forzar el stack o la rama de la infraestructura).</p>
-        </div>
-      </details>
-    </section>
-
-    <section id="planb">
-      <div class="eyebrow">07 · Plan B</div>
-      <h2>Si algo falla en directo</h2>
-      <div class="scroll">
-        <table class="services">
-          <thead><tr><th>Síntoma</th><th>Qué hacer</th></tr></thead>
-          <tbody>
-            <tr><td>El despliegue en vivo tarda o falla</td><td>Proyecta la URL de referencia (<code>TankGameRef</code>) y sigue la charla. Explica el error con <code>aws cloudformation describe-events --stack-name TankGameLive</code>.</td></tr>
-            <tr><td>Credenciales caducadas</td><td><code>aws login</code> en la terminal y repite el último prompt.</td></tr>
-            <tr><td>El juego carga pero no se mueve</td><td>El WebSocket no pasa: revisa que CloudFront use <i>CachingDisabled</i> + <i>AllViewer</i> y que el target group esté sano.</td></tr>
-            <tr><td>Error 502/503 de CloudFront</td><td>La tarea aún arranca o el health check falla. <code>aws logs tail</code> del log group.</td></tr>
-            <tr><td>Se acaban los créditos de Kiro</td><td>Cambia a la rama <code>referencia-aws</code> y muestra <code>infra/lib/tank-game-stack.ts</code> explicando cada bloque.</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section id="limpieza">
-      <div class="eyebrow">08 · Después de la charla</div>
-      <h2>Limpieza y costos</h2>
-      <p class="prose">Con el entorno encendido y sin jugadores, cada stack cuesta unos <b>2 USD al día</b> (Fargate, ALB e IPv4 públicas). Con 100 jugadores, el juego envía unos 110 KiB/s a cada uno: unos 40 GB por hora de partida, cubiertos por el TB gratuito mensual de CloudFront. Borra los dos stacks al terminar.</p>
-      <div class="cmdwrap">
-        <div class="prompt-bar"><span>Borrar todo</span><button class="copy" type="button">Copiar</button></div>
-<pre class="cmd">cd infra && npx cdk destroy TankGameLive --force      # el de Kiro (rama main)
-git switch referencia-aws && cd infra && npx cdk destroy TankGameRef --force
-npx cdk destroy TankGameCi --force                    # roles de GitHub Actions</pre>
-      </div>
-      <p class="prose">El stack <code>CDKToolkit</code> puede quedarse: no cuesta casi nada y evita repetir el bootstrap en la próxima charla.</p>
+      <h3>Pruébalo</h3>
+      <p><a class="btn" href="https://dk6drll26dl1g.cloudfront.net/" target="_blank" rel="noopener">Abrir el juego</a></p>
+      <p class="small">Espectador: <a href="https://dk6drll26dl1g.cloudfront.net/espectador" target="_blank" rel="noopener">/espectador</a>. Es un entorno de demostración y puede apagarse después de la charla.</p>
     </section>
   </main>
 </div>
 
-<footer>Repositorio <code>kiro-local-to-aws</code> · solución de referencia en la rama <code>referencia-aws</code>, carpeta <code>infra/</code>.</footer>
-
-<script>
-  // Botones de copiar
-  document.querySelectorAll("button.copy").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const pre = btn.closest(".prompt, .cmdwrap").querySelector("pre");
-      const text = pre.innerText.trim();
-      const ok = () => { btn.textContent = "Copiado"; btn.classList.add("done"); setTimeout(() => { btn.textContent = "Copiar"; btn.classList.remove("done"); }, 1600); };
-      const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Selecciona y copia"; };
-      try { navigator.clipboard.writeText(text).then(ok, fallback); } catch { fallback(); }
-    });
-  });
-  // Lista de preparación recordada en este navegador
-  document.querySelectorAll("#prep input").forEach((box) => {
-    try { box.checked = localStorage.getItem("prep:" + box.id) === "1"; } catch {}
-    box.addEventListener("change", () => { try { localStorage.setItem("prep:" + box.id, box.checked ? "1" : "0"); } catch {} });
-  });
-</script>
+<footer>
+  <p>Repositorio: <a href="https://github.com/JoseMP05/kiro-local-to-aws" target="_blank" rel="noopener">JoseMP05/kiro-local-to-aws</a></p>
+  <p>Speakers: Jose Miguel Pulgarin Agudelo y David Zapata Naranjo.</p>
+  <p>Hecho con Kiro.</p>
+</footer>
+</body>
+</html>

@@ -46,3 +46,6 @@ cdk.out/
 
 # Local AI tooling cache
 .atl/
+
+# Presenter notes for the talk (local only, not published)
+notas/
