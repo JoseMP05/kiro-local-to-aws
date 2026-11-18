@@ -110,7 +110,7 @@ export const CONFIG_SCHEMA = {
   "tank.rankHealth.podium": { type: "number", default: 20, min: 0, max: 100, integer: true },
   "tank.rankHealth.top10": { type: "number", default: 10, min: 0, max: 100, integer: true },
   "tank.respawnS": { type: "number", default: 3, min: 0.5, max: 60 },
-  "tank.protectionS": { type: "number", default: 2, min: 0, max: 10 },
+  "tank.protectionS": { type: "number", default: 3, min: 0, max: 10 },
   "tank.safeMaxAttempts": { type: "number", default: 30, min: 1, max: 100, integer: true },
 
   // --- bullet ---

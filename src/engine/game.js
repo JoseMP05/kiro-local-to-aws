@@ -120,6 +120,8 @@ export function createGame({ config, rng, bots, log }) {
       y: point.y,
       maxHealth: config.tank.maxHealth,
     });
+    // Protección también al entrar a la partida, igual que al reaparecer.
+    tank.invulnerableUntilTick = world.tick + protectionTicks;
     world.tanks.set(tank.id, tank);
     return tank;
   }

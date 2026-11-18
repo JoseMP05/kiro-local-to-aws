@@ -10,7 +10,9 @@ const EPS = 1e-9;
 
 /**
  * Intenta disparar con un Tanque. Devuelve la Bala creada o null.
- * No modifica el Tanque salvo lastShotTick e invulnerabilidad cuando dispara.
+ * No modifica el Tanque salvo lastShotTick cuando dispara. Un Tanque con
+ * protección de reaparición no puede disparar: así nadie la pierde por accidente
+ * al mantener pulsado el disparo; empieza a disparar en cuanto termina.
  * @param {object} tank
  * @param {object} env { tick, tickRate, reloadMs, maxActive, barrelLength,
  *                        bulletSpeed, bulletRadius, arenaW, arenaH, obstacles }
@@ -20,6 +22,9 @@ const EPS = 1e-9;
  */
 export function tryFire(tank, env, ownBulletCount, nextId) {
   const { tick, tickRate, reloadMs, maxActive, barrelLength, bulletSpeed, bulletRadius, arenaW, arenaH, obstacles } = env;
+
+  // 0) Con protección de reaparición no se dispara (ni se consume la recarga).
+  if (tank.invulnerableUntilTick >= 0 && tick <= tank.invulnerableUntilTick) return null;
 
   // 1) Recarga en Ticks enteros.
   const reloadTicks = Math.ceil((reloadMs * tickRate) / 1000);
@@ -58,7 +63,8 @@ export function tryFire(tank, env, ownBulletCount, nextId) {
   };
   tank.lastShotTick = tick;
 
-  // 5) La invulnerabilidad termina al crear la Bala (Req. 7.10).
+  // Req. 7.10: la protección termina al disparar; como tryFire no dispara con
+  // protección activa, aquí ya está caducada y solo se normaliza el marcador.
   tank.invulnerableUntilTick = -1;
 
   return bullet;

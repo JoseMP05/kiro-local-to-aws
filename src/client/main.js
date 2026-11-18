@@ -310,6 +310,7 @@ function draw() {
       tickRate: welcome.config.tickRate,
       showHelp,
       badges: powerupBadges(ownState),
+      protectedNow: !!(ownState && !ownState.dead && ownState.inv),
       minimap: {
         arena: { w: welcome.arena.width, h: welcome.arena.height },
         obstacles: welcome.obstacles,

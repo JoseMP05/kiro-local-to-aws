@@ -90,7 +90,7 @@
       "top10": { "default": 10, "min": 0, "max": 100, "integer": true }
     },
     "respawnS": { "default": 3, "min": 0.5, "max": 60 },
-    "protectionS": { "default": 2, "min": 0, "max": 10 },
+    "protectionS": { "default": 3, "min": 0, "max": 10 },
     "safeMaxAttempts": { "default": 30, "min": 1, "max": 100, "integer": true }
   },
   "bullet": {

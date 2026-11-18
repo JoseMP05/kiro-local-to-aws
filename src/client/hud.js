@@ -6,6 +6,7 @@ import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor }
 
 const HUD_FONT_PX = 14;
 const MARGIN = 12;
+const PROTECTED_TEXT_GAP = 24; // px entre el texto "PROTEGIDO" y el borde superior de la barra de vida
 
 /**
  * Líneas del Ranking: las 10 primeras entradas y, si la posición propia es > 10,
@@ -96,6 +97,11 @@ export function drawHud(ctx, scene, screen) {
   else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
   if (scene.ownHealth) drawOwnHealth(ctx, scene.ownHealth, screen);
+  if (scene.protectedNow) {
+    // Justo encima de la barra de vida propia.
+    const bar = ownHealthLayout(screen);
+    drawOutlinedText(ctx, "PROTEGIDO · AÚN NO PUEDES DISPARAR", screen.w / 2, bar.y - PROTECTED_TEXT_GAP, { px: 14, color: "#b3e5fc" });
+  }
   if (scene.badges?.length) drawBadges(ctx, scene.badges, screen);
   if (scene.killFeed?.length) drawKillFeed(ctx, scene.killFeed, scene.myNick, screen);
   if (scene.banner) drawOutlinedText(ctx, scene.banner.text, screen.w / 2, screen.h * 0.22, { px: 34, color: scene.banner.color });
