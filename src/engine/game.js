@@ -10,7 +10,7 @@ import { trySpawnBox, collectBoxes } from "./boxes.js";
 import { findSafePoint } from "./spawn.js";
 import { resolveNick } from "./nicknames.js";
 import { computeRanking } from "./ranking.js";
-import { rankHealthBonus, setMaxHealth } from "./health.js";
+import { rankHealthBonus, setMaxHealth, regenerate } from "./health.js";
 import { createEffectSystem } from "../effects/effect-system.js";
 import { createSlowEffect } from "../effects/builtin/slow.js";
 import { createTurboEffect } from "../effects/builtin/turbo.js";
@@ -62,6 +62,8 @@ export function createGame({ config, rng, bots, log }) {
   const tankSize = config.tank.size;
   const protectionTicks = Math.round(config.tank.protectionS * config.tick.rate);
   const respawnTicks = Math.round(config.tank.respawnS * config.tick.rate);
+  const regenDelayTicks = Math.round(config.tank.regen.delayS * config.tick.rate);
+  const regenPerTick = config.tank.regen.perS / config.tick.rate;
 
   // --- API pública ---
 
@@ -327,6 +329,10 @@ export function createGame({ config, rng, bots, log }) {
       for (const dead of newlyDead) effects.endForTarget(dead.id);
     }
 
+    // Fase 13b: regeneración de vida de los Tanques que llevan un rato sin recibir daño.
+    for (const t of world.tanks.values()) {
+      regenerate(t, { tick: world.tick, delayTicks: regenDelayTicks, perTick: regenPerTick });
+    }
     // Fase 14: Efectos por Tick.
     effects.tickAll();
 

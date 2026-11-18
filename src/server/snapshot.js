@@ -38,6 +38,7 @@ export function buildWelcomeConfig(config) {
     botsInRanking: config.bots.inRanking,
     boxPoints: config.boxes.points,
     healAmount: config.boxes.healAmount,
+    regenPerS: config.tank.regen.perS,
     // Duración total (ms) de cada efecto, para la barra de tiempo restante del HUD.
     effectDurations: {
       turbo: config.effects.turbo.durationMs,

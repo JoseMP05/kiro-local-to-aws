@@ -154,6 +154,9 @@ function reactToState(prev, next) {
 
   // Impactos y curaciones: diferencia de vida de cada Tanque entre estados.
   let healed = false;
+  // La regeneración sube la vida poco a poco: esas subidas no muestran texto ni suenan.
+  const cfg = welcome?.config;
+  const regenStep = cfg?.regenPerS > 0 ? Math.max(1, Math.ceil(cfg.regenPerS / cfg.tickRate)) : 0;
   if (prev) {
     const prevById = new Map(prev.tanks.map((t) => [t.id, t]));
     for (const t of next.tanks) {
@@ -167,7 +170,7 @@ function reactToState(prev, next) {
           hitFlashAt = now;
           audio.hit();
         }
-      } else if (diff > 0) {
+      } else if (diff > regenStep) {
         if (!(t.id === ownId && healedByBox)) particles.text(t.x, t.y - 32, `+${diff}`, now, { color: "#69f0ae" });
         if (t.id === ownId) healed = true;
       }

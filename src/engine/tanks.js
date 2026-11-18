@@ -61,6 +61,8 @@ export function createTank(opts) {
     lastShotTick: null,
     invulnerableUntilTick: -1,
     shieldUntilTick: -1, // Escudo de potenciador: no se pierde al disparar.
+    lastDamageTick: null, // último Tick en que recibió daño (para la regeneración)
+    regenAcc: 0, // vida regenerada acumulada que aún no llega a un punto entero
     speedMultiplier: 1,
     lastInput: NEUTRAL_INPUT,
   };
@@ -88,4 +90,6 @@ export function respawnTank(tank, { x, y, tick, maxHealth, protectionTicks }) {
   tank.lastInput = NEUTRAL_INPUT;
   tank.invulnerableUntilTick = tick + protectionTicks;
   tank.shieldUntilTick = -1;
+  tank.lastDamageTick = null;
+  tank.regenAcc = 0;
 }

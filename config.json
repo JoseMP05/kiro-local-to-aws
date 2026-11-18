@@ -89,6 +89,10 @@
       "podium": { "default": 20, "min": 0, "max": 100, "integer": true },
       "top10": { "default": 10, "min": 0, "max": 100, "integer": true }
     },
+    "regen": {
+      "perS": { "default": 4, "min": 0, "max": 1000 },
+      "delayS": { "default": 4, "min": 0, "max": 60 }
+    },
     "respawnS": { "default": 3, "min": 0.5, "max": 60 },
     "protectionS": { "default": 3, "min": 0, "max": 10 },
     "safeMaxAttempts": { "default": 30, "min": 1, "max": 100, "integer": true }

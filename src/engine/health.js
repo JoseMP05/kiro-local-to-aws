@@ -32,3 +32,22 @@ export function setMaxHealth(tank, newMax) {
   if (newMax > oldMax) tank.hp += newMax - oldMax;
   else tank.hp = Math.min(tank.hp, newMax);
 }
+/**
+ * Regeneración de vida de un Tick. Un Tanque activo que lleva `delayTicks`
+ * Ticks sin recibir daño recupera `perTick` de vida (puede ser fraccionario:
+ * se acumula y solo se suman puntos enteros, así la vida sigue siendo entera).
+ * @param {object} tank
+ * @param {{ tick: number, delayTicks: number, perTick: number }} opts
+ */
+export function regenerate(tank, { tick, delayTicks, perTick }) {
+  if (tank.dead || perTick <= 0 || tank.hp >= tank.maxHp) {
+    tank.regenAcc = 0;
+    return;
+  }
+  if (tank.lastDamageTick !== null && tick - tank.lastDamageTick < delayTicks) return;
+  tank.regenAcc += perTick;
+  const whole = Math.floor(tank.regenAcc + 1e-9);
+  if (whole <= 0) return;
+  tank.regenAcc -= whole;
+  tank.hp = Math.min(tank.maxHp, tank.hp + whole);
+}
