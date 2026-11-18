@@ -2,10 +2,11 @@
 // regresiva. Las funciones de cálculo son puras; el dibujo usa coordenadas de
 // pantalla (píxeles CSS) con letra de al menos 14 px.
 
-import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText } from "../shared/sprites.js";
+import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor } from "../shared/sprites.js";
 
 const HUD_FONT_PX = 14;
 const MARGIN = 12;
+const PROTECTED_TEXT_GAP = 24; // px entre el texto "PROTEGIDO" y el borde superior de la barra de vida
 
 /**
  * Líneas del Ranking: las 10 primeras entradas y, si la posición propia es > 10,
@@ -95,6 +96,12 @@ export function drawHud(ctx, scene, screen) {
   if (scene.showHelp) drawControls(ctx, screen);
   else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
+  if (scene.ownHealth) drawOwnHealth(ctx, scene.ownHealth, screen);
+  if (scene.protectedNow) {
+    // Justo encima de la barra de vida propia.
+    const bar = ownHealthLayout(screen);
+    drawOutlinedText(ctx, "PROTEGIDO · AÚN NO PUEDES DISPARAR", screen.w / 2, bar.y - PROTECTED_TEXT_GAP, { px: 14, color: "#b3e5fc" });
+  }
   if (scene.badges?.length) drawBadges(ctx, scene.badges, screen);
   if (scene.killFeed?.length) drawKillFeed(ctx, scene.killFeed, scene.myNick, screen);
   if (scene.banner) drawOutlinedText(ctx, scene.banner.text, screen.w / 2, screen.h * 0.22, { px: 34, color: scene.banner.color });
@@ -348,6 +355,32 @@ function drawCountdown(ctx, scene, screen) {
   const secs = countdownSeconds(scene.respawnTick, scene.estimatedTick, scene.tickRate);
   drawOutlinedText(ctx, "ELIMINADO", screen.w / 2, screen.h / 2 - 70, { px: 28, color: "#ef5350" });
   drawOutlinedText(ctx, `REAPARECES EN ${secs}`, screen.w / 2, screen.h / 2 - 30, { px: 40, color: PALETTE.accent });
+}
+
+/** Posición y tamaño de la barra de vida propia: abajo al centro. */
+export function ownHealthLayout(screen) {
+  const w = Math.min(360, Math.max(200, screen.w - 760));
+  const h = 22;
+  return { x: Math.round((screen.w - w) / 2), y: screen.h - h - MARGIN - 8, w, h };
+}
+
+/** Barra de vida propia, grande, abajo al centro. `base` es la vida máxima sin bono de Ranking. */
+function drawOwnHealth(ctx, own, screen) {
+  const { x, y, w, h } = ownHealthLayout(screen);
+  const frac = Math.max(0, Math.min(1, own.hp / own.maxHp));
+  if (own.maxHp > (own.base ?? own.maxHp)) {
+    ctx.fillStyle = PALETTE.accent;
+    ctx.fillRect(x - 5, y - 5, w + 10, h + 10);
+  }
+  ctx.fillStyle = "#000";
+  ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  ctx.fillStyle = "#3a1010";
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = hpColor(frac);
+  ctx.fillRect(x, y, Math.round(frac * w), h);
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.fillRect(x, y, Math.round(frac * w), 3);
+  drawOutlinedText(ctx, `VIDA ${Math.ceil(own.hp)}/${own.maxHp}`, screen.w / 2, y + h / 2, { px: 14, baseline: "middle" });
 }
 
 function drawBadges(ctx, badges, screen) {

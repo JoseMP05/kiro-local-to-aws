@@ -563,32 +563,24 @@ export function drawOutlinedText(ctx, text, x, y, { px = 11, color = PALETTE.tex
 }
 
 /**
- * Vida en bloques (hasta 10 de vida máxima) o en barra continua. Con vida
- * extra por Ranking (`bonus`), el borde es dorado.
+ * Barra de vida continua: el relleno es proporcional a hp/maxHp y cambia de
+ * verde a amarillo y rojo. Con vida extra por Ranking (`bonus`), el borde es dorado.
  */
 function drawHealth(ctx, left, top, width, hp, maxHp, bonus = false) {
   const frac = Math.max(0, Math.min(1, hp / maxHp));
-  const col = hpColor(frac);
-  const h = 5;
+  const h = 6;
   if (bonus) {
     ctx.fillStyle = PALETTE.accent;
     ctx.fillRect(left - 2, top - 2, width + 4, h + 4);
   }
   ctx.fillStyle = "#000";
   ctx.fillRect(left - 1, top - 1, width + 2, h + 2);
-  if (maxHp <= 10) {
-    const gap = maxHp > 6 ? 1 : 2;
-    const pip = (width - gap * (maxHp - 1)) / maxHp;
-    for (let i = 0; i < maxHp; i++) {
-      ctx.fillStyle = i < hp ? col : "#3a1010";
-      ctx.fillRect(left + i * (pip + gap), top, pip, h);
-    }
-  } else {
-    ctx.fillStyle = "#3a1010";
-    ctx.fillRect(left, top, width, h);
-    ctx.fillStyle = col;
-    ctx.fillRect(left, top, frac * width, h);
-  }
+  ctx.fillStyle = "#3a1010";
+  ctx.fillRect(left, top, width, h);
+  ctx.fillStyle = hpColor(frac);
+  ctx.fillRect(left, top, Math.round(frac * width), h);
+  ctx.fillStyle = "rgba(255,255,255,0.25)";
+  ctx.fillRect(left, top, Math.round(frac * width), 1);
 }
 
 /**

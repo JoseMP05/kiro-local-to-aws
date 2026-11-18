@@ -21,8 +21,7 @@ export function testConfigRaw(overrides = {}) {
       maxHealth: { default: 3, min: 1, max: 1000 },
       respawnS: { default: 1, min: 0.5, max: 60 },
       protectionS: { default: 2, min: 0, max: 10 },
-      safeDistance: { default: 100, min: 0, max: 20000 },
-      safeMaxAttempts: { default: 30, min: 1, max: 1000, integer: true },
+      safeMaxAttempts: { default: 30, min: 1, max: 100, integer: true },
     },
     bullet: {
       speed: { default: 600, min: 1, max: 5000 },

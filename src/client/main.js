@@ -303,10 +303,14 @@ function draw() {
       banner,
       hitFlash: Math.max(0, 1 - (now - hitFlashAt) / HIT_FLASH_MS),
       respawnTick,
+      ownHealth: ownState && !ownState.dead
+        ? { hp: ownState.hp, maxHp: ownState.maxHp, base: welcome.config.maxHealth }
+        : null,
       estimatedTick,
       tickRate: welcome.config.tickRate,
       showHelp,
       badges: powerupBadges(ownState),
+      protectedNow: !!(ownState && !ownState.dead && ownState.inv),
       minimap: {
         arena: { w: welcome.arena.width, h: welcome.arena.height },
         obstacles: welcome.obstacles,

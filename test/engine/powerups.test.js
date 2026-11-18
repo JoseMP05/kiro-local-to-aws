@@ -72,3 +72,14 @@ test("con powerupChance 0 todas las Cajas nuevas son de puntos", () => {
   assert.ok(kinds.length > 0);
   assert.ok(kinds.every((k) => k === "puntos"));
 });
+
+test("pickKind respeta los pesos de los potenciadores", async () => {
+  const { pickKind } = await import("../../src/engine/boxes.js");
+  const { mulberry32 } = await import("../../src/engine/rng.js");
+  const rng = mulberry32(21);
+  const counts = { turbo: 0, escudo: 0, botiquin: 0 };
+  for (let i = 0; i < 3000; i++) counts[pickKind(1, { turbo: 0, escudo: 1, botiquin: 3 }, rng)]++;
+  assert.equal(counts.turbo, 0, "peso 0 nunca sale");
+  assert.ok(counts.botiquin > counts.escudo * 2, `botiquín (${counts.botiquin}) ~3x escudo (${counts.escudo})`);
+  assert.equal(pickKind(1, { turbo: 0, escudo: 0, botiquin: 0 }, rng), "puntos", "sin pesos cae a puntos");
+});

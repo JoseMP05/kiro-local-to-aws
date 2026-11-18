@@ -97,19 +97,16 @@ export function createGame({ config, rng, bots, log }) {
   }
 
   // Crea un Tanque en un Punto_Seguro. Si resolve=true, resuelve el Apodo.
-  function spawnTank({ connId, isBot, nick, resolve }) {
+  function spawnTank({ connId, isBot, nick, resolve, threats = collectThreats() }) {
     const existing = [...world.tanks.values()].map((t) => t.nick);
     const finalNick = resolve ? resolveNick(nick, existing, config.players.nickMax) : nick;
 
-    const activeTanks = [];
-    for (const t of world.tanks.values()) {
-      if (!t.dead) activeTanks.push({ x: t.x, y: t.y });
-    }
     const point = findSafePoint(
-      { arenaW, arenaH, obstacles: world.obstacles, activeTanks, tankSize, safeDistance: config.tank.safeDistance },
+      { arenaW, arenaH, obstacles: world.obstacles, activeTanks: threats.tanks, bullets: threats.bullets, tankSize },
       rng,
       config.tank.safeMaxAttempts
     );
+    threats.tanks.push({ x: point.x, y: point.y });
     const targetId = newTargetId(world, rng);
 
     const tank = createTank({
@@ -123,8 +120,21 @@ export function createGame({ config, rng, bots, log }) {
       y: point.y,
       maxHealth: config.tank.maxHealth,
     });
+    // Protección también al entrar a la partida, igual que al reaparecer.
+    tank.invulnerableUntilTick = world.tick + protectionTicks;
     world.tanks.set(tank.id, tank);
     return tank;
+  }
+
+  // Amenazas al elegir un Punto_Seguro: Tanques activos y Balas en vuelo. Quien
+  // aparece varias veces en un Tick las construye una vez y la reutiliza; cada
+  // punto nuevo se añade a la lista para que el siguiente no caiga encima.
+  function collectThreats() {
+    const tanks = [];
+    for (const t of world.tanks.values()) if (!t.dead) tanks.push({ x: t.x, y: t.y });
+    const bullets = [];
+    for (const b of world.bullets.values()) bullets.push({ x: b.x, y: b.y });
+    return { tanks, bullets };
   }
 
   // Cuenta de Tanques de Jugador (activos + eliminados), excluye Bots.
@@ -167,27 +177,28 @@ export function createGame({ config, rng, bots, log }) {
 
     // Fase 2: altas en orden de llegada.
     const joins = world.pendingJoins.splice(0, world.pendingJoins.length);
+    let threats = null; // se construye al primer spawn y se comparte entre altas y reapariciones del Tick
     for (const p of joins) {
       if (playerCount() >= config.players.max) {
         result.rejected.push({ connId: p.connId, reason: "GAME_FULL" });
         continue;
       }
-      const tank = spawnTank({ connId: p.connId, isBot: false, nick: p.nick, resolve: true });
+      threats ??= collectThreats();
+      const tank = spawnTank({ connId: p.connId, isBot: false, nick: p.nick, resolve: true, threats });
       result.joined.push({ connId: p.connId, tankId: tank.id, nick: tank.nick });
     }
 
     // Fase 3: reapariciones.
     for (const t of world.tanks.values()) {
       if (t.dead && t.deadTick !== null && world.tick - t.deadTick >= respawnTicks) {
-        const activeTanks = [];
-        for (const o of world.tanks.values()) {
-          if (!o.dead && o.id !== t.id) activeTanks.push({ x: o.x, y: o.y });
-        }
+        // `t` está muerto, así que no figura entre las amenazas.
+        threats ??= collectThreats();
         const point = findSafePoint(
-          { arenaW, arenaH, obstacles: world.obstacles, activeTanks, tankSize, safeDistance: config.tank.safeDistance },
+          { arenaW, arenaH, obstacles: world.obstacles, activeTanks: threats.tanks, bullets: threats.bullets, tankSize },
           rng,
           config.tank.safeMaxAttempts
         );
+        threats.tanks.push({ x: point.x, y: point.y });
         respawnTank(t, {
           x: point.x,
           y: point.y,
@@ -327,6 +338,7 @@ export function createGame({ config, rng, bots, log }) {
         boxIntervalS: config.boxes.intervalS, boxSize: config.boxes.size,
         boxMaxAttempts: config.boxes.maxAttempts, arenaW, arenaH,
         obstacles: world.obstacles, tankSize, powerupChance: config.boxes.powerupChance,
+        powerupWeights: config.boxes.powerupWeights,
       },
       rng,
       () => world.nextBoxId++
