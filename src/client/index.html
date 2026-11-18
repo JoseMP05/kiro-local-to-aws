@@ -72,6 +72,11 @@
       font-family: var(--font); font-weight: bold; font-size: 13px;
     }
 
+    .crate-icon { width: 32px; height: 32px; image-rendering: pixelated; flex: none; }
+    .boxes li { justify-content: flex-start; }
+    .boxes .name { display: block; }
+    .boxes .desc { display: block; color: #bdbdbd; font-size: 13px; }
+    .boxes .note { color: #9e9e9e; font-size: 13px; }
     .blink { animation: blink 1.1s steps(1) infinite; letter-spacing: 0.2em; font-size: 14px; color: var(--accent); }
     @keyframes blink { 50% { opacity: 0; } }
   </style>
@@ -103,6 +108,16 @@
           <li><span class="keys"><kbd>M</kbd></span><span>SONIDO SÍ / NO</span></li>
           <li><span class="keys"><kbd>N</kbd></span><span>MÚSICA SÍ / NO</span></li>
           <li><span class="keys"><kbd>H</kbd></span><span>MOSTRAR / OCULTAR AYUDA</span></li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h2>CAJAS</h2>
+        <ul class="controls boxes">
+          <li><canvas class="crate-icon" data-kind="puntos" width="32" height="32"></canvas><span><span class="name" style="color:#ffd54f">PUNTOS</span><span class="desc">SUMA PUNTOS</span></span></li>
+          <li><canvas class="crate-icon" data-kind="turbo" width="32" height="32"></canvas><span><span class="name" style="color:#ffca28">TURBO</span><span class="desc">MÁS VELOCIDAD UNOS SEGUNDOS</span></span></li>
+          <li><canvas class="crate-icon" data-kind="escudo" width="32" height="32"></canvas><span><span class="name" style="color:#4fc3f7">ESCUDO</span><span class="desc">SIN RECIBIR DAÑO UNOS SEGUNDOS</span></span></li>
+          <li><canvas class="crate-icon" data-kind="botiquin" width="32" height="32"></canvas><span><span class="name" style="color:#69f0ae">BOTIQUÍN</span><span class="desc">RECUPERA VIDA</span></span></li>
+          <li class="note">SI NO RECIBES DAÑO, TU VIDA SE RECUPERA SOLA</li>
         </ul>
       </div>
     </div>

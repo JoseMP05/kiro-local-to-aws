@@ -70,3 +70,12 @@ test("las estelas se acotan y se limpian al desaparecer la Bala", () => {
   tr.end();
   assert.equal(tr.size(), 1, "la Bala 1 se descarta");
 });
+test("boxLegend: una fila por tipo de Caja con las cantidades configuradas", async () => {
+  const { boxLegend } = await import("../../src/client/hud.js");
+  const rows = boxLegend({ boxPoints: 10, healAmount: 35, effectDurations: { turbo: 5000, escudo: 5000 } });
+  assert.deepEqual(rows.map((r) => r.kind), ["puntos", "turbo", "escudo", "botiquin"]);
+  assert.equal(rows[0].text, "+10 PUNTOS");
+  assert.equal(rows[1].text, "MÁS VELOCIDAD 5S");
+  assert.equal(rows[2].text, "SIN RECIBIR DAÑO 5S");
+  assert.equal(rows[3].text, "+35 VIDA");
+});

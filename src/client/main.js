@@ -6,8 +6,8 @@ import { createStateBuffer } from "/shared/interpolation.js";
 import { createInputSampler } from "./input-sampler.js";
 import { computeCamera, screenToWorld } from "./camera.js";
 import { drawFrame } from "./render.js";
-import { drawHud, powerupBadges } from "./hud.js";
-import { drawCrtOverlay } from "/shared/sprites.js";
+import { drawHud, powerupBadges, boxLegend } from "./hud.js";
+import { drawCrtOverlay, drawCrate } from "/shared/sprites.js";
 import { createParticles } from "/shared/particles.js";
 import { createAudio } from "./audio.js";
 import { createKillFeed, streakMilestone, isSelfKill } from "/shared/kill-feed.js";
@@ -59,6 +59,10 @@ function resizeCanvas() {
 }
 window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
+// Iconos de la leyenda de Cajas de la pantalla de entrada: el mismo dibujo que en la Arena.
+for (const c of document.querySelectorAll("canvas.crate-icon")) {
+  drawCrate(c.getContext("2d"), c.width / 2, c.height / 2, 22, 0, c.dataset.kind);
+}
 
 // --- Conexión ---
 
@@ -353,6 +357,8 @@ function draw() {
       estimatedTick,
       tickRate: welcome.config.tickRate,
       showHelp,
+      boxLegend: boxLegend(welcome.config),
+      regenPerS: welcome.config.regenPerS,
       badges: powerupBadges(ownState, welcome.config.effectDurations),
       protectedNow: !!(ownState && !ownState.dead && ownState.inv),
       minimap: {

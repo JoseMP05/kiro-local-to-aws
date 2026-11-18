@@ -2,7 +2,7 @@
 // regresiva. Las funciones de cálculo son puras; el dibujo usa coordenadas de
 // pantalla (píxeles CSS) con letra de al menos 14 px.
 
-import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor } from "../shared/sprites.js";
+import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor, drawCrate } from "../shared/sprites.js";
 import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
 import { KILL_ROLE_COLORS, EFFECT_COLORS } from "../shared/ui-colors.js";
 
@@ -10,6 +10,7 @@ export { killFeedText };
 
 const HUD_FONT_PX = 14;
 const MARGIN = 12;
+const CONTROLS_W = 330; // ancho del panel de controles y de la leyenda de Cajas
 const PROTECTED_TEXT_GAP = 24; // px entre el texto "PROTEGIDO" y el borde superior de la barra de vida
 
 /**
@@ -94,10 +95,25 @@ export const CONTROLS = [
 ];
 
 /**
+ * Filas de la leyenda de Cajas de la ayuda, con las cantidades configuradas.
+ * @param {{ boxPoints?: number, healAmount?: number, effectDurations?: Record<string, number> }} [cfg] config del welcome
+ * @returns {Array<{ kind: string, name: string, text: string, color: string }>}
+ */
+export function boxLegend(cfg = {}) {
+  const secs = (ms) => (ms > 0 ? ` ${Math.round(ms / 100) / 10}S` : "");
+  const d = cfg.effectDurations ?? {};
+  return [
+    { kind: "puntos", name: "PUNTOS", text: `+${cfg.boxPoints ?? 0} PUNTOS`, color: PALETTE.accent },
+    { kind: "turbo", name: "TURBO", text: `MÁS VELOCIDAD${secs(d.turbo)}`, color: EFFECT_COLORS.turbo },
+    { kind: "escudo", name: "ESCUDO", text: `SIN RECIBIR DAÑO${secs(d.escudo)}`, color: EFFECT_COLORS.escudo },
+    { kind: "botiquin", name: "BOTIQUÍN", text: `+${cfg.healAmount ?? 0} VIDA`, color: "#69f0ae" },
+  ];
+}
+/**
  * Dibuja todo el HUD.
  * @param {CanvasRenderingContext2D} ctx
  * @param {object} scene { ranking, respawnTick, estimatedTick, tickRate, showHelp, minimap, frame,
- *   killFeed, myNick, banner, hitFlash }
+ *   killFeed, myNick, banner, hitFlash, boxLegend, regenPerS }
  * @param {{ w: number, h: number }} screen tamaño en px CSS
  */
 export function drawHud(ctx, scene, screen) {
@@ -105,8 +121,10 @@ export function drawHud(ctx, scene, screen) {
   if (scene.hitFlash > 0) drawHitFlash(ctx, scene.hitFlash, screen);
   if (scene.minimap) drawMinimap(ctx, scene.minimap, MARGIN, MARGIN);
   if (scene.ranking) drawRanking(ctx, scene, screen);
-  if (scene.showHelp) drawControls(ctx, screen);
-  else drawHelpHint(ctx, screen);
+  if (scene.showHelp) {
+    const top = drawControls(ctx, screen);
+    if (scene.boxLegend?.length) drawBoxLegend(ctx, scene.boxLegend, top, scene.regenPerS > 0);
+  } else drawHelpHint(ctx, screen);
   if (scene.respawnTick != null) drawCountdown(ctx, scene, screen);
   if (scene.ownHealth) drawOwnHealth(ctx, scene.ownHealth, screen);
   if (scene.protectedNow) {
@@ -320,7 +338,7 @@ export function drawMinimap(ctx, mm, x, y) {
 function drawControls(ctx, screen) {
   const pad = 12;
   const rowH = HUD_FONT_PX + 16;
-  const w = 330;
+  const w = CONTROLS_W;
   const h = pad * 2 + HUD_FONT_PX + 10 + rowH * (CONTROLS.length + 1);
   const x = MARGIN;
   const y = screen.h - h - MARGIN - 4;
@@ -351,6 +369,41 @@ function drawControls(ctx, screen) {
     ctx.textBaseline = "middle";
     ctx.fillText(row.action, actionX, ry + (HUD_FONT_PX + 6) / 2);
     ry += rowH;
+  }
+  return y;
+}
+/**
+ * Leyenda de Cajas encima del panel de controles: el dibujo de cada Caja, su
+ * nombre y lo que da. `bottom` es el borde superior del panel de controles.
+ */
+function drawBoxLegend(ctx, rows, bottom, showRegen) {
+  const pad = 12;
+  const rowH = 40;
+  const crate = 26;
+  const noteH = showRegen ? HUD_FONT_PX + 10 : 0;
+  const w = CONTROLS_W;
+  const h = pad * 2 + HUD_FONT_PX + 10 + rowH * rows.length + noteH;
+  const x = MARGIN;
+  const y = bottom - h - 12;
+  drawPanel(ctx, x, y, w, h);
+  setFont(ctx);
+  ctx.fillStyle = PALETTE.accent;
+  ctx.fillText("CAJAS", x + pad, y + pad);
+  let ry = y + pad + HUD_FONT_PX + 10;
+  for (const row of rows) {
+    drawCrate(ctx, x + pad + crate / 2 + 2, ry + rowH / 2 - 2, crate, 0, row.kind);
+    const tx = x + pad + crate + 18;
+    setFont(ctx);
+    ctx.fillStyle = row.color;
+    ctx.fillText(row.name, tx, ry);
+    ctx.fillStyle = PALETTE.text;
+    ctx.fillText(fitText(ctx, row.text, w - (tx - x) - pad), tx, ry + HUD_FONT_PX + 3);
+    ry += rowH;
+  }
+  if (showRegen) {
+    setFont(ctx);
+    ctx.fillStyle = "#9e9e9e";
+    ctx.fillText(fitText(ctx, "SIN DAÑO, LA VIDA SE RECUPERA", w - pad * 2), x + pad, ry + 2);
   }
 }
 
