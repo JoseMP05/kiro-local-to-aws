@@ -303,6 +303,9 @@ function draw() {
       banner,
       hitFlash: Math.max(0, 1 - (now - hitFlashAt) / HIT_FLASH_MS),
       respawnTick,
+      ownHealth: ownState && !ownState.dead
+        ? { hp: ownState.hp, maxHp: ownState.maxHp, base: welcome.config.maxHealth }
+        : null,
       estimatedTick,
       tickRate: welcome.config.tickRate,
       showHelp,

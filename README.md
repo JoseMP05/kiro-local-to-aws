@@ -35,7 +35,7 @@ npm test
 
 ### Cómo se juega
 
-- Cada tanque tiene 6 de vida. Si tienes puntos y estás en el top 10, tienes vida extra: +3 si eres el líder, +2 en 2.º y 3.º puesto, +1 del 4.º al 10.º. Los tanques con vida extra muestran la barra con borde dorado.
+- Cada tanque tiene 100 de vida y cada bala quita 10. Si tienes puntos y estás en el top 10, tienes vida extra: +30 si eres el líder, +20 en 2.º y 3.º puesto, +10 del 4.º al 10.º. Los tanques con vida extra muestran la barra con borde dorado.
 - Puedes disparar cada 0,3 s y tener hasta 5 balas en el aire. Las balas duran 3 s, rebotan hasta 3 veces y también te dañan a ti.
 - Eliminar a otro tanque suma puntos (bonus extra si es el líder). Al morir pierdes la cuarta parte de tus puntos y reapareces a los 3 segundos con 2 segundos de protección.
 - Las eliminaciones seguidas forman una racha: a las 3, 5 y cada 5 más se anuncia en pantalla.
@@ -43,7 +43,7 @@ npm test
   - **Caja de madera con moneda**: suma puntos.
   - **Caja amarilla con rayo (turbo)**: 5 segundos de velocidad aumentada.
   - **Caja azul con escudo**: 5 segundos sin recibir daño, y disparar no lo pierde.
-  - **Caja blanca con cruz roja (botiquín)**: recupera 3 de vida, sin pasar de tu máximo.
+  - **Caja blanca con cruz roja (botiquín)**: recupera 35 de vida, sin pasar de tu máximo.
 - El mapa es simétrico, con búnkeres en las esquinas, muros de ladrillo, bloques de acero, losas de hormigón y una plaza central. Los obstáculos se configuran en `config.json`. El suelo (caminos, cráteres, vegetación) es solo decorativo y se genera en el navegador.
 - Hay bots para que la arena no se vea vacía. No aparecen en el ranking.
 

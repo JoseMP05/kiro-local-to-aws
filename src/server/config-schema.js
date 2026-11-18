@@ -104,11 +104,11 @@ export const CONFIG_SCHEMA = {
   "tank.speed": { type: "number", default: 200, min: 1, max: 2000 },
   "tank.size": { type: "number", default: 40, min: 8, max: 200 },
   "tank.barrelLength": { type: "number", default: 32, min: 1, max: 200 },
-  "tank.maxHealth": { type: "number", default: 6, min: 1, max: 1000, integer: true },
+  "tank.maxHealth": { type: "number", default: 100, min: 1, max: 1000, integer: true },
   // Vida extra según la posición en el Ranking (solo con más de 0 puntos).
-  "tank.rankHealth.first": { type: "number", default: 3, min: 0, max: 100, integer: true },
-  "tank.rankHealth.podium": { type: "number", default: 2, min: 0, max: 100, integer: true },
-  "tank.rankHealth.top10": { type: "number", default: 1, min: 0, max: 100, integer: true },
+  "tank.rankHealth.first": { type: "number", default: 30, min: 0, max: 100, integer: true },
+  "tank.rankHealth.podium": { type: "number", default: 20, min: 0, max: 100, integer: true },
+  "tank.rankHealth.top10": { type: "number", default: 10, min: 0, max: 100, integer: true },
   "tank.respawnS": { type: "number", default: 3, min: 0.5, max: 60 },
   "tank.protectionS": { type: "number", default: 2, min: 0, max: 10 },
   "tank.safeDistance": { type: "number", default: 300, min: 0, max: 20000 },
@@ -117,7 +117,7 @@ export const CONFIG_SCHEMA = {
   // --- bullet ---
   "bullet.speed": { type: "number", default: 600, min: 1, max: 5000 },
   "bullet.radius": { type: "number", default: 5, min: 1, max: 50 },
-  "bullet.damage": { type: "number", default: 1, min: 1, max: 1000 },
+  "bullet.damage": { type: "number", default: 10, min: 1, max: 1000 },
   "bullet.reloadMs": { type: "number", default: 300, min: 0, max: 10000 },
   "bullet.maxActive": { type: "number", default: 5, min: 1, max: 50, integer: true },
   "bullet.maxBounces": { type: "number", default: 3, min: 0, max: 10, integer: true },
@@ -138,7 +138,7 @@ export const CONFIG_SCHEMA = {
   // Probabilidad de que una Caja nueva sea un potenciador (turbo, escudo o botiquín) en vez de puntos.
   "boxes.powerupChance": { type: "number", default: 0.45, min: 0, max: 1 },
   // Vida que recupera el botiquín (sin pasar de la vida máxima).
-  "boxes.healAmount": { type: "number", default: 3, min: 1, max: 1000, integer: true },
+  "boxes.healAmount": { type: "number", default: 35, min: 1, max: 1000, integer: true },
 
   // --- bots ---
   "bots.count": { type: "number", default: 0, min: 0, max: 20, integer: true },

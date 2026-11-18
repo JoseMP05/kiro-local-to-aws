@@ -6,7 +6,7 @@ import { streakMilestone } from "../../src/shared/kill-feed.js";
 import { buildPlayerState } from "../../src/server/snapshot.js";
 
 const NEUTRAL = { w: false, a: false, s: false, d: false, fire: false, aim: 0 };
-const BONUS = { first: 3, podium: 2, top10: 1 };
+const BONUS = { first: 30, podium: 20, top10: 10 };
 
 /** Partida con dos Jugadores (Ana y Beto) sin protección ni Cajas. */
 function twoPlayers(overrides = {}) {
@@ -27,6 +27,8 @@ function killWith(game, killer, victim) {
   victim.shieldUntilTick = -1;
   game.setInput(killer.id, { ...NEUTRAL, fire: true, aim: 0 });
   for (let i = 0; i < 60; i++) {
+    // El bono de vida por Ranking puede subir hp mientras la Bala viaja: se mantiene en 1.
+    if (!victim.dead) victim.hp = Math.min(victim.hp, 1);
     const res = game.step();
     if (res.kills.length > 0) {
       game.setInput(killer.id, NEUTRAL);
@@ -38,11 +40,11 @@ function killWith(game, killer, victim) {
 }
 
 test("rankHealthBonus: 1.º, 2.º-3.º, 4.º-10.º y sin puntos", () => {
-  assert.equal(rankHealthBonus(1, 10, BONUS), 3);
-  assert.equal(rankHealthBonus(2, 10, BONUS), 2);
-  assert.equal(rankHealthBonus(3, 10, BONUS), 2);
-  assert.equal(rankHealthBonus(4, 10, BONUS), 1);
-  assert.equal(rankHealthBonus(10, 10, BONUS), 1);
+  assert.equal(rankHealthBonus(1, 10, BONUS), 30);
+  assert.equal(rankHealthBonus(2, 10, BONUS), 20);
+  assert.equal(rankHealthBonus(3, 10, BONUS), 20);
+  assert.equal(rankHealthBonus(4, 10, BONUS), 10);
+  assert.equal(rankHealthBonus(10, 10, BONUS), 10);
   assert.equal(rankHealthBonus(11, 10, BONUS), 0);
   assert.equal(rankHealthBonus(1, 0, BONUS), 0, "sin puntos no hay bono");
   assert.equal(rankHealthBonus(null, 50, BONUS), 0, "fuera del Ranking (Bots)");
@@ -91,7 +93,8 @@ test("al reaparecer, la vida es la máxima según el Ranking", () => {
 });
 
 test("el botiquín cura healAmount sin pasar de la vida máxima", () => {
-  const { game, config, ana } = twoPlayers({ "tank.maxHealth": 6 });
+  const { game, config, ana } = twoPlayers({ "tank.maxHealth": 100 });
+  assert.equal(config.boxes.healAmount, 35, "por defecto cura 35 de vida");
   const w = game._world;
   ana.hp = 1;
   w.boxes.set(900, { id: 900, x: ana.x, y: ana.y, kind: "botiquin" });
@@ -100,6 +103,7 @@ test("el botiquín cura healAmount sin pasar de la vida máxima", () => {
   assert.equal(ana.hp, 1 + config.boxes.healAmount);
   assert.equal(ana.score, 0, "el botiquín no da puntos");
 
+  ana.hp = ana.maxHp - 5;
   w.boxes.set(901, { id: 901, x: ana.x, y: ana.y, kind: "botiquin" });
   game.step();
   assert.equal(ana.hp, ana.maxHp, "no supera la vida máxima");
