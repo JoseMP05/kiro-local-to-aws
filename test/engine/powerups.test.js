@@ -83,3 +83,29 @@ test("pickKind respeta los pesos de los potenciadores", async () => {
   assert.ok(counts.botiquin > counts.escudo * 2, `botiquín (${counts.botiquin}) ~3x escudo (${counts.escudo})`);
   assert.equal(pickKind(1, { turbo: 0, escudo: 0, botiquin: 0 }, rng), "puntos", "sin pesos cae a puntos");
 });
+
+test("la recogida emite un evento con la cantidad configurada y el estado lo expone solo al dueño", async () => {
+  const { buildPlayerState, buildSpectatorState } = await import("../../src/server/snapshot.js");
+  const { game, config, tank } = setup("puntos");
+  const res = game.step();
+  assert.equal(res.boxPicked.length, 1);
+  const ev = res.boxPicked[0];
+  assert.equal(ev.amount, config.boxes.points);
+  assert.equal(ev.boxId, 900);
+
+  const view = game.getView();
+  const own = buildPlayerState(view, tank.id, config, [], res.boxPicked);
+  assert.deepEqual(own.pickups, [{ kind: "puntos", amount: config.boxes.points }]);
+  assert.equal(own.collected.length, 1);
+  const other = buildPlayerState(view, tank.id + 99, config, [], res.boxPicked);
+  assert.deepEqual(other.pickups, []);
+  assert.equal(buildSpectatorState(view, config, [], res.boxPicked).collected[0].kind, "puntos");
+});
+
+test("el estado expone shieldMs mientras dura el escudo", () => {
+  const { game } = setup("escudo", { "tank.protectionS": 0 });
+  game.step();
+  const t = game.getView().tanks[0];
+  assert.equal(t.shield, true);
+  assert.ok(t.shieldMs > 0);
+});
