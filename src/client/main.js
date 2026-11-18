@@ -11,6 +11,7 @@ import { drawCrtOverlay } from "/shared/sprites.js";
 import { createParticles } from "/shared/particles.js";
 import { createAudio } from "./audio.js";
 import { createKillFeed, streakMilestone, isSelfKill } from "/shared/kill-feed.js";
+import { createPickupFx, pickupInfo } from "/shared/pickup-fx.js";
 
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
@@ -37,6 +38,7 @@ let killedBy = null; // { killer, self }: quién eliminó al Jugador en su muert
 const particles = createParticles();
 const audio = createAudio();
 const killFeed = createKillFeed();
+const pickupFx = createPickupFx();
 let lastShotSoundAt = 0;
 let hitFlashAt = -Infinity; // último daño recibido (para el borde rojo)
 let banner = null; // { text, color, until }: anuncio de racha propia
@@ -133,6 +135,23 @@ function reactToState(prev, next) {
     }
   }
 
+  // Cajas recogidas: animación sobre la Caja (de cualquier Jugador visible).
+  for (const c of next.collected ?? []) {
+    pickupFx.add(c.kind, c.x, c.y, now);
+    particles.burst(c.x, c.y, now, { count: 10, colors: pickupInfo(c.kind).burst, speed: 170 });
+  }
+  // Recogidas propias: aviso flotante con la cantidad configurada, ráfaga y sonido por tipo.
+  const ownNow = next.tanks.find((t) => t.id === ownId);
+  const pickups = next.pickups ?? [];
+  for (const p of pickups) {
+    if (!ownNow) break;
+    const info = pickupInfo(p.kind, p.amount);
+    if (info.text) particles.text(ownNow.x, ownNow.y - 44, info.text, now, { color: info.color, px: 20 });
+    particles.burst(ownNow.x, ownNow.y, now, { count: 14, colors: info.burst, speed: 200 });
+    audio.pickupKind(p.kind);
+  }
+  const healedByBox = pickups.some((p) => p.kind === "botiquin");
+
   // Impactos y curaciones: diferencia de vida de cada Tanque entre estados.
   let healed = false;
   if (prev) {
@@ -149,7 +168,7 @@ function reactToState(prev, next) {
           audio.hit();
         }
       } else if (diff > 0) {
-        particles.text(t.x, t.y - 32, `+${diff}`, now, { color: "#69f0ae" });
+        if (!(t.id === ownId && healedByBox)) particles.text(t.x, t.y - 32, `+${diff}`, now, { color: "#69f0ae" });
         if (t.id === ownId) healed = true;
       }
     }
@@ -158,6 +177,7 @@ function reactToState(prev, next) {
   const before = prev?.tanks.find((t) => t.id === ownId);
   const after = next.tanks.find((t) => t.id === ownId);
   if (!before || !after || after.dead || before.dead) return;
+  if (pickups.length > 0) return; // el sonido ya lo dio cada tipo de Caja
   const gotPowerup =
     (after.shield && !before.shield) || after.effects.length > before.effects.length;
   if (gotPowerup) audio.powerup();
@@ -290,6 +310,7 @@ function draw() {
       config: welcome.config,
       frame,
       particles,
+      pickupFx,
       now: performance.now(),
     }, dpr());
 

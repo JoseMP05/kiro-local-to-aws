@@ -70,6 +70,8 @@ export function drawFrame(ctx, cam, scene, dpr) {
     drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
   }
 
+  if (scene.pickupFx) scene.pickupFx.draw(ctx, scene.now ?? 0, config.boxSize);
+
   bulletTrails.begin();
   for (const b of bullets.values()) {
     if (outside(b, vr, margin)) continue;

@@ -48,6 +48,8 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
   drawGround(ctx, arena.width, arena.height);
   for (const o of obstacles) drawObstacle(ctx, o);
   for (const b of boxes.values()) drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
+  if (scene.pickupFx) scene.pickupFx.draw(ctx, scene.now ?? 0, config.boxSize);
+
   bulletTrails.begin();
   for (const b of bullets.values()) {
     bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius);

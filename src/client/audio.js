@@ -73,6 +73,30 @@ export function createAudio() {
     powerup() {
       tone({ type: "sawtooth", from: 300, to: 900, ms: 220, volume: 0.06 });
     },
+    /** Sonido propio de cada tipo de Caja recogida. */
+    pickupKind(kind) {
+      if (kind === "puntos") {
+        // Moneda: dos notas agudas muy seguidas.
+        tone({ type: "square", from: 988, to: 988, ms: 70, volume: 0.05 });
+        tone({ type: "square", from: 1319, to: 1319, ms: 200, volume: 0.05, delayMs: 70 });
+      } else if (kind === "botiquin") {
+        // Curación: tono ascendente suave.
+        tone({ type: "triangle", from: 392, to: 523, ms: 110, volume: 0.07 });
+        tone({ type: "triangle", from: 523, to: 659, ms: 110, volume: 0.07, delayMs: 100 });
+        tone({ type: "triangle", from: 659, to: 988, ms: 200, volume: 0.07, delayMs: 200 });
+      } else if (kind === "turbo") {
+        // Estela: barrido grave-agudo con ruido.
+        tone({ type: "sawtooth", from: 180, to: 1100, ms: 320, volume: 0.045 });
+        noise({ ms: 320, volume: 0.07 });
+      } else if (kind === "escudo") {
+        // Metálico: dos tonos inarmónicos con caída rápida.
+        tone({ type: "square", from: 1175, to: 1150, ms: 260, volume: 0.04 });
+        tone({ type: "square", from: 1760, to: 1720, ms: 200, volume: 0.03, delayMs: 30 });
+        tone({ type: "triangle", from: 587, to: 580, ms: 320, volume: 0.06 });
+      } else {
+        tone({ type: "triangle", from: 660, to: 990, ms: 90, volume: 0.07 });
+      }
+    },
     toggleMute() {
       muted = !muted;
       return muted;
