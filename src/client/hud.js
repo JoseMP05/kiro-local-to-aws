@@ -4,7 +4,7 @@
 
 import { RETRO_FONT, PALETTE, drawPanel, drawKeycap, drawOutlinedText, hpColor } from "../shared/sprites.js";
 import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
-import { KILL_ROLE_COLORS } from "../shared/ui-colors.js";
+import { KILL_ROLE_COLORS, EFFECT_COLORS } from "../shared/ui-colors.js";
 
 export { killFeedText };
 
@@ -62,19 +62,24 @@ export function minimapLayout(arena, maxW, maxH) {
 }
 
 /**
- * Insignias de potenciadores activos del Jugador.
- * @param {{ effects?: Array<{ name: string, remainingMs: number }>, shield?: boolean }|undefined} own
- * @returns {Array<{ label: string, color: string }>}
+ * Insignias de efectos activos del Jugador, con el tiempo restante en fracción.
+ * @param {{ effects?: Array<{ name: string, remainingMs: number }>, shield?: boolean, shieldMs?: number, dead?: boolean }|undefined} own
+ * @param {Record<string, number>} [durations] duración total en ms por efecto (turbo, ralentizar, escudo)
+ * @returns {Array<{ label: string, color: string, frac: number }>}
  */
-export function powerupBadges(own) {
+export function powerupBadges(own, durations = {}) {
   if (!own || own.dead) return [];
   const out = [];
+  const frac = (ms, total) => (total > 0 ? Math.max(0, Math.min(1, ms / total)) : 1);
   for (const e of own.effects ?? []) {
     const secs = Math.ceil(e.remainingMs / 1000);
-    if (e.name === "turbo") out.push({ label: `TURBO ${secs}S`, color: "#ffca28" });
-    else if (e.name === "ralentizar") out.push({ label: `LENTO ${secs}S`, color: "#90a4ae" });
+    if (e.name === "turbo") out.push({ label: `TURBO ${secs}S`, color: EFFECT_COLORS.turbo, frac: frac(e.remainingMs, durations.turbo) });
+    else if (e.name === "ralentizar") out.push({ label: `LENTO ${secs}S`, color: EFFECT_COLORS.ralentizar, frac: frac(e.remainingMs, durations.ralentizar) });
   }
-  if (own.shield) out.push({ label: "ESCUDO", color: "#4fc3f7" });
+  if (own.shield) {
+    const ms = own.shieldMs ?? 0;
+    out.push({ label: ms > 0 ? `ESCUDO ${Math.ceil(ms / 1000)}S` : "ESCUDO", color: EFFECT_COLORS.escudo, frac: frac(ms, durations.escudo) });
+  }
   return out;
 }
 
@@ -255,9 +260,20 @@ export function drawMinimap(ctx, mm, x, y) {
     ctx.fillRect(ox + o.x * s, oy + o.y * s, Math.max(1, o.w * s), Math.max(1, o.h * s));
   }
 
-  ctx.fillStyle = PALETTE.accent;
   for (const b of boxes.values()) {
-    ctx.fillRect(Math.round(ox + b.x * s) - 1, Math.round(oy + b.y * s) - 1, 3, 3);
+    const bx = Math.round(ox + b.x * s);
+    const by = Math.round(oy + b.y * s);
+    if (b.kind === "botiquin") {
+      // Botiquín: cuadro blanco con punto rojo, se distingue de las Cajas de puntos.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(bx - 2, by - 2, 5, 5);
+      ctx.fillStyle = "#e53935";
+      ctx.fillRect(bx, by - 1, 1, 3);
+      ctx.fillRect(bx - 1, by, 3, 1);
+    } else {
+      ctx.fillStyle = PALETTE.accent;
+      ctx.fillRect(bx - 1, by - 1, 3, 3);
+    }
   }
 
   for (const t of tanks.values()) {
@@ -397,16 +413,31 @@ function drawOwnHealth(ctx, own, screen) {
 function drawBadges(ctx, badges, screen) {
   setFont(ctx, 18);
   const pad = 10;
-  const h = 18 + pad * 2;
+  const barH = 6;
+  const h = 18 + pad * 2 + barH + 4;
   let y = screen.h - h - MARGIN - 4;
   for (const b of badges) {
-    const w = Math.ceil(ctx.measureText(b.label).width) + pad * 2;
+    const iconW = 14;
+    const w = Math.ceil(ctx.measureText(b.label).width) + pad * 2 + iconW + 8;
     const x = screen.w - w - MARGIN - 4;
     drawPanel(ctx, x, y, w, h);
+    // Icono: cuadro del color del efecto con borde oscuro.
+    ctx.fillStyle = "#000";
+    ctx.fillRect(x + pad - 1, y + pad + 1, iconW + 2, iconW + 2);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x + pad, y + pad + 2, iconW, iconW);
+    setFont(ctx, 18);
     ctx.fillStyle = b.color;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(b.label, x + pad, y + pad);
+    ctx.fillText(b.label, x + pad + iconW + 8, y + pad);
+    // Barra de tiempo restante.
+    const bw = w - pad * 2;
+    const by = y + pad + 18 + 4;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(x + pad - 1, by - 1, bw + 2, barH + 2);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(x + pad, by, Math.round(bw * (b.frac ?? 1)), barH);
     y -= h + 10;
   }
 }

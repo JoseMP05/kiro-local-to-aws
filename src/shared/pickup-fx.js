@@ -3,6 +3,7 @@
 // Compartido por Cliente y Espectador.
 
 import { drawCrate } from "./sprites.js";
+import { EFFECT_COLORS } from "./ui-colors.js";
 
 const COLLECT_MS = 350;
 const MAX_FX = 40;
@@ -17,9 +18,9 @@ export function pickupInfo(kind, amount = 0) {
   switch (kind) {
     case "puntos": return { text: `+${amount} PTS`, color: "#ffd54f", burst: ["#ffd54f", "#fff3b0", "#ffb300"] };
     case "botiquin": return { text: `+${amount} VIDA`, color: "#69f0ae", burst: ["#69f0ae", "#ffffff", "#e53935"] };
-    case "turbo": return { text: "TURBO!", color: "#4dd0e1", burst: ["#4dd0e1", "#ffffff", "#f9a825"] };
-    case "escudo": return { text: "ESCUDO!", color: "#42a5f5", burst: ["#42a5f5", "#b3e5fc", "#ffffff"] };
-    case "ralentizar": return { text: "LENTO!", color: "#b0bec5", burst: ["#b0bec5", "#78909c", "#ffffff"] };
+    case "turbo": return { text: "TURBO!", color: EFFECT_COLORS.turbo, burst: [EFFECT_COLORS.turbo, "#ffffff", "#f9a825"] };
+    case "escudo": return { text: "ESCUDO!", color: EFFECT_COLORS.escudo, burst: [EFFECT_COLORS.escudo, "#b3e5fc", "#ffffff"] };
+    case "ralentizar": return { text: "LENTO!", color: EFFECT_COLORS.ralentizar, burst: [EFFECT_COLORS.ralentizar, "#78909c", "#ffffff"] };
     default: return { text: "", color: "#ffffff", burst: ["#ffffff"] };
   }
 }

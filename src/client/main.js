@@ -344,7 +344,7 @@ function draw() {
       estimatedTick,
       tickRate: welcome.config.tickRate,
       showHelp,
-      badges: powerupBadges(ownState),
+      badges: powerupBadges(ownState, welcome.config.effectDurations),
       protectedNow: !!(ownState && !ownState.dead && ownState.inv),
       minimap: {
         arena: { w: welcome.arena.width, h: welcome.arena.height },
