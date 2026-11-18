@@ -2,6 +2,7 @@
 // son puras (sin DOM al importar). drawFrame usa el contexto 2D.
 
 import { visibleWorldRect } from "./camera.js";
+import { createBulletTrails } from "../shared/bullet-trails.js";
 import {
   PALETTE, drawGround, drawObstacle, drawCrate, drawBullet, drawTank, botLabel,
 } from "../shared/sprites.js";
@@ -16,6 +17,8 @@ export function tankColor(category) {
     default: return "#1e88e5"; // otros Jugadores
   }
 }
+
+const bulletTrails = createBulletTrails();
 
 /** Ancho de la barra de vida. */
 export function hpBarWidth(hp, maxHp, barW) {
@@ -67,10 +70,13 @@ export function drawFrame(ctx, cam, scene, dpr) {
     drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
   }
 
+  bulletTrails.begin();
   for (const b of bullets.values()) {
     if (outside(b, vr, margin)) continue;
+    bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius);
     drawBullet(ctx, b.x, b.y, config.bulletRadius);
   }
+  bulletTrails.end();
 
   for (const t of tanks.values()) {
     if (outside(t, vr, margin)) continue;

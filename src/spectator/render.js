@@ -7,8 +7,10 @@ import {
 } from "../shared/sprites.js";
 
 import { killFeedText, killFeedSegments } from "../shared/kill-feed.js";
+import { createBulletTrails } from "../shared/bullet-trails.js";
 import { KILL_ROLE_COLORS } from "../shared/ui-colors.js";
 
+const bulletTrails = createBulletTrails();
 const RANKING_FONT_PX = 24;
 const MEDALS = ["#ffd54f", "#cfd8dc", "#ffab91"];
 
@@ -46,7 +48,12 @@ export function drawSpectatorFrame(ctx, scene, screen, dpr) {
   drawGround(ctx, arena.width, arena.height);
   for (const o of obstacles) drawObstacle(ctx, o);
   for (const b of boxes.values()) drawCrate(ctx, b.x, b.y, config.boxSize, frame, b.kind);
-  for (const b of bullets.values()) drawBullet(ctx, b.x, b.y, config.bulletRadius);
+  bulletTrails.begin();
+  for (const b of bullets.values()) {
+    bulletTrails.drawFor(ctx, b.id, b.x, b.y, config.bulletRadius);
+    drawBullet(ctx, b.x, b.y, config.bulletRadius);
+  }
+  bulletTrails.end();
 
   // Etiquetas de unos 13 px en pantalla, con la escala que tenga la Arena.
   const labelPx = 11 / tr.s;

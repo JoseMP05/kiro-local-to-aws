@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { rankingLines, deathHeadline, fitText } from "../../src/client/hud.js";
 import { killFeedText, killFeedSegments, isSelfKill } from "../../src/shared/kill-feed.js";
 import { botLabel } from "../../src/client/render.js";
+import { createBulletTrails } from "../../src/shared/bullet-trails.js";
 
 const RANK = {
   tables: [{ name: "tanques", entries: Array.from({ length: 10 }, (_, i) => ({ position: i + 1, nick: `J${i + 1}`, score: 100 - i, bot: false })) }],
@@ -48,4 +49,20 @@ test("la etiqueta de Bot no repite la marca ni muestra puntos fuera del Ranking"
   assert.equal(botLabel("Ana", 75), "Ana BOT");
   assert.equal(botLabel("Bot 20", 75, true), "Bot 20 · 75");
   assert.equal(botLabel("Ana", 75, true), "Ana BOT · 75");
+});
+
+test("las estelas se acotan y se limpian al desaparecer la Bala", () => {
+  const ctx = { fillStyle: "", globalAlpha: 1, fillRect() {} };
+  const tr = createBulletTrails({ maxLength: 4 });
+  for (let f = 0; f < 10; f++) {
+    tr.begin();
+    tr.drawFor(ctx, 1, f * 10, 0, 5);
+    tr.drawFor(ctx, 2, 0, f * 10, 5);
+    tr.end();
+  }
+  assert.equal(tr.size(), 2);
+  tr.begin();
+  tr.drawFor(ctx, 2, 0, 100, 5);
+  tr.end();
+  assert.equal(tr.size(), 1, "la Bala 1 se descarta");
 });
