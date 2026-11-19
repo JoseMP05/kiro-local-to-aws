@@ -248,20 +248,17 @@
         <div class="bar"><span>Prompt base</span><button class="copy" type="button" aria-label="Copiar el prompt base">Copiar</button></div>
 <pre tabindex="0">Crea una spec para un juego de tanques multijugador en el navegador, en una versión simplificada del juego real. Escribe los documentos en español.
 
-Alcance, un requisito por área y en notación EARS:
-1. Unirse a la partida con un apodo.
-2. Mover el tanque.
+Alcance, exactamente 5 requisitos (uno por área) y en notación EARS:
+1. Unirse a la partida con un apodo y manejar la desconexión de jugadores.
+2. Mover el tanque, con colisiones contra muros, cajas y límites del mapa.
 3. Disparar con tiempo de recarga.
-4. Colisiones con muros, cajas y límites del mapa.
-5. Daño, vidas y reaparición.
-6. Puntaje por eliminación.
-7. Ranking top 5 en vivo y HUD.
-8. Desconexión de jugadores, GET /health y variable de entorno PORT.
+4. Daño, vidas, reaparición y puntaje por eliminación.
+5. Ranking top 5 en vivo y HUD.
 
-Restricciones técnicas: Node.js 24 con módulos ES; la única dependencia es ws; sin paso de build; el cliente es HTML, CSS y JavaScript plano que sirve el mismo servidor. Un solo mapa.
+Restricciones técnicas: Node.js 24 con módulos ES; la única dependencia es ws; sin paso de build; el cliente es HTML, CSS y JavaScript plano que sirve el mismo servidor. GET /health y variable de entorno PORT. Un solo mapa.
 Fuera de alcance: power-ups, bots y modo espectador.
 
-Mantén la spec compacta: 8 requisitos, un diseño corto y hasta 12 tareas.
+Mantén la spec compacta: 5 requisitos, un diseño corto y como máximo 10 tareas.
 Empieza por requirements.md.</pre>
       </div>
 
