@@ -209,6 +209,57 @@ button.copy.done { color: var(--ok); }
 .decision b { font-family: var(--font-display); font-weight: 600; }
 .decision span { color: var(--muted); font-size: 0.93rem; }
 
+/* ¿Qué es AWS?: una tarjeta por servicio, numeradas en el orden del recorrido del jugador */
+.facts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1180px) { .facts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.svc { gap: 10px; font-size: 0.95rem; }
+.svc-head { display: flex; gap: 12px; align-items: flex-start; }
+.svc-n { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; color: var(--aws); border: 1px solid var(--aws); background: color-mix(in srgb, var(--aws) 10%, var(--surface)); }
+.svc-role { font-family: var(--font-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-top: 2px; }
+.svc .hook { padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--aws) 10%, var(--bg)); border-left: 3px solid var(--aws); }
+.svc .hook b { color: var(--aws); }
+.svc .in-game { margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--line); color: var(--muted); font-size: 0.9rem; }
+.svc .in-game b { color: var(--ink); }
+
+/* Prompts para Kiro: ruta de pasos y una tarjeta por fase */
+.step-no { display: inline-grid; place-items: center; flex: none; min-width: 24px; height: 24px; padding: 0 6px; font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; color: var(--accent-ink); background: var(--accent); border-radius: 6px; }
+/* Línea de tiempo: fase arriba, pasos unidos por una línea; en pantallas angostas se desliza en horizontal */
+.route { padding: 16px 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.route-track { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); row-gap: 14px; }
+.route-phase { grid-row: 1; margin: 0 8px; padding-bottom: 6px; border-bottom: 2px solid var(--pc); color: var(--pc); font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; text-align: center; }
+.ph-prep { grid-column: 1 / 2; --pc: var(--muted); }
+.ph-spec { grid-column: 2 / 6; --pc: var(--accent); }
+.ph-build { grid-column: 6 / 9; --pc: var(--accent2); }
+.route-track a { --pc: var(--accent); grid-row: 2; position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 2px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 0.85rem; text-align: center; min-width: 0; }
+.route-track a:nth-of-type(1) { --pc: var(--muted); }
+.route-track a:nth-of-type(n+6) { --pc: var(--accent2); }
+.route-track a::before { content: ""; position: absolute; z-index: 0; top: 15px; right: 50%; width: 100%; height: 2px; background: var(--line); }
+.route-track a:first-of-type::before { display: none; }
+.dot { position: relative; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; color: var(--surface); background: var(--pc); box-shadow: 0 0 0 4px var(--surface); transition: transform .15s ease; }
+.route-track a:hover .dot { transform: scale(1.12); }
+.route-track a:hover span:last-child { color: var(--pc); }
+/* Móvil: la ruta pasa a vertical y cada punto conserva el color de su fase */
+@media (max-width: 600px) {
+  .route { padding: 12px; }
+  .route-track { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+  .route-phase { display: none; }
+  .route-track a { grid-row: auto; flex-direction: row; gap: 12px; padding: 6px 4px; font-size: 0.95rem; text-align: left; }
+  .route-track a::before { top: auto; bottom: 50%; right: auto; left: 17px; width: 2px; height: 100%; }
+}
+.phase { display: grid; gap: 14px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; min-width: 0; scroll-margin-top: 16px; }
+.phase-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.phase-head h3 { display: flex; align-items: center; gap: 10px; font-size: 1.15rem; }
+.mode { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; background: var(--bg); }
+.where { font-size: 0.95rem; color: var(--muted); max-width: 72ch; }
+.where b { color: var(--ink); font-weight: 600; }
+.review { display: grid; gap: 6px; }
+.checks { display: grid; gap: 6px; padding: 0; list-style: none; }
+.checks li { position: relative; padding-left: 26px; font-size: 0.95rem; }
+.checks li::before { content: "▸"; position: absolute; left: 4px; top: 0; color: var(--accent); font-family: var(--font-mono); }
+.adjust { border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: 10px; }
+.adjust > summary { cursor: pointer; padding: 10px 14px; min-height: 44px; display: flex; align-items: center; font-family: var(--font-display); font-weight: 600; color: var(--accent); }
+.adjust > :not(summary) { margin: 0 12px 12px; }
+
 footer { max-width: 1180px; margin: 56px auto 0; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 4px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {

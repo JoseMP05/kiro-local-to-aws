@@ -27,7 +27,9 @@
       <li><a href="#ejecutar">Ponerlas en marcha</a></li>
       <li><a href="#resultado">El juego terminado</a></li>
       <li><a href="#tunel">Compartir con un túnel</a></li>
+      <li><a href="#que-es-aws">¿Qué es AWS?</a></li>
       <li><a href="#aws">Despliegue en AWS</a></li>
+      <li><a href="#prompts">Prompts para Kiro</a></li>
     </ol>
   </nav>
 
@@ -44,7 +46,9 @@
         <li><a href="#ejecutar">Ponerlas en marcha</a></li>
         <li><a href="#resultado">El juego terminado</a></li>
         <li><a href="#tunel">Compartir con un túnel</a></li>
-        <li><a href="#aws">Despliegue en AWS</a></li>
+        <li><a href="#que-es-aws">¿Qué es AWS?</a></li>
+      <li><a href="#aws">Despliegue en AWS</a></li>
+        <li><a href="#prompts">Prompts para Kiro</a></li>
       </ol>
     </details>
 
@@ -333,11 +337,73 @@ npm start</pre>
       <p class="small">Documentación: <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/" target="_blank" rel="noopener">quick tunnels (TryCloudflare)</a>.</p>
     </section>
 
-    <!-- 10. AWS -->
+    <!-- 10. Qué es AWS -->
+    <section id="que-es-aws" aria-labelledby="h-que-es-aws">
+      <div class="eyebrow">10 · La nube · David</div>
+      <h2 id="h-que-es-aws">¿Qué es AWS?</h2>
+      <div class="prose">
+        <p><b>Amazon Web Services (AWS)</b> es la nube de Amazon. En lugar de comprar servidores y tenerlos en una oficina, <b>alquilas</b> computadores, redes y almacenamiento en los centros de datos de Amazon, los usas por minutos y pagas solo lo que consumes.</p>
+        <p>Netflix, por ejemplo, tiene en AWS casi todo lo que no es el video: el catálogo, las recomendaciones, el registro y los pagos. El mismo tipo de piezas que vamos a usar para el juego.</p>
+      </div>
+      <ul class="facts four">
+        <li><b>Pago por uso</b>como la luz: lo que enciendes, lo pagas</li>
+        <li><b>+200 servicios</b>de cómputo, bases de datos, IA, redes…</li>
+        <li><b>Regiones</b>en todo el mundo; usamos <code>us-east-1</code> (Virginia)</li>
+        <li><b>Segundos</b>para crear un servidor, sin esperar hardware</li>
+      </ul>
+
+      <h3>Los servicios que usa el juego</h3>
+      <p class="prose">Siguiendo a un jugador desde que abre la URL hasta que llega al servidor, y después lo que hay detrás.</p>
+      <div class="grid-auto services-grid">
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">1</span><div><h3>Amazon CloudFront</h3><p class="svc-role">La red de entrega (CDN)</p></div></div>
+          <p>Cientos de puntos de presencia repartidos por el mundo. Cada persona se conecta al más cercano, y desde ahí su tráfico viaja por la red privada de AWS.</p>
+          <p class="hook"><b>Dato:</b> Prime Video lo usa para transmitir en vivo el fútbol americano de los jueves a más de 18 millones de personas.</p>
+          <p class="in-game"><b>En el juego:</b> nos da HTTPS gratis sin comprar un dominio, y deja pasar el WebSocket de la partida.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">2</span><div><h3>Application Load Balancer</h3><p class="svc-role">El portero</p></div></div>
+          <p>Recibe las conexiones y las manda al servidor que esté sano. Cada 10 segundos le pregunta “¿estás vivo?” y, si no responde, deja de enviarle gente.</p>
+          <p class="in-game"><b>En el juego:</b> solo acepta tráfico que viene de CloudFront y revisa <code>/health</code>.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">3</span><div><h3>Amazon ECS + Fargate</h3><p class="svc-role">Donde corre el juego</p></div></div>
+          <p>Ejecuta contenedores Docker sin que tengas que administrar servidores: le dices cuánta CPU y memoria quieres, y AWS pone la máquina.</p>
+          <p class="in-game"><b>En el juego:</b> una sola copia del servidor de Node.js, porque la partida vive en memoria.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">4</span><div><h3>Amazon ECR</h3><p class="svc-role">El almacén de imágenes</p></div></div>
+          <p>Un Docker Hub privado dentro de tu cuenta. Guarda las imágenes de tus contenedores.</p>
+          <p class="in-game"><b>En el juego:</b> guarda la imagen que se construye con el <code>Dockerfile</code>.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">5</span><div><h3>Amazon CloudWatch</h3><p class="svc-role">La caja negra</p></div></div>
+          <p>Reúne los logs y las métricas de todos los servicios. Es lo primero que se mira cuando algo falla.</p>
+          <p class="in-game"><b>En el juego:</b> lo que el servidor imprime en la terminal aparece aquí.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">6</span><div><h3>Amazon VPC</h3><p class="svc-role">Tu red privada</p></div></div>
+          <p>Una red aislada dentro de AWS, con sus propias reglas de quién puede hablar con quién (los <i>security groups</i>).</p>
+          <p class="in-game"><b>En el juego:</b> el balanceador y el contenedor viven aquí, cerrados a todo lo que no sea CloudFront.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">7</span><div><h3>AWS CDK + CloudFormation</h3><p class="svc-role">El plano de la casa</p></div></div>
+          <p>Describes la infraestructura con código (TypeScript) y AWS la construye igual cada vez. Si borras el stack, se borra todo de una.</p>
+          <p class="in-game"><b>En el juego:</b> es lo que Kiro escribe en la carpeta <code>infra/</code>.</p>
+        </article>
+        <article class="card svc">
+          <div class="svc-head"><span class="svc-n">8</span><div><h3>AWS IAM</h3><p class="svc-role">Quién puede hacer qué</p></div></div>
+          <p>Controla los permisos de personas y servicios. Cada pieza recibe solo los permisos que necesita.</p>
+          <p class="in-game"><b>En el juego:</b> el contenedor solo puede bajar su imagen de ECR y escribir sus logs.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 11. AWS -->
     <section id="aws" aria-labelledby="h-aws">
-      <div class="eyebrow">10 · Despliegue real · David</div>
+      <div class="eyebrow">11 · Despliegue real · David</div>
       <h2 id="h-aws">Despliegue en AWS</h2>
-      <p class="prose">Para el despliegue real, Kiro genera la infraestructura como código con AWS CDK. Este es el resumen al que puedes volver.</p>
+      <p class="prose">Para el despliegue real, Kiro genera la infraestructura como código con AWS CDK. Este es el resumen al que puedes volver. Los prompts que usamos están en la <a href="#prompts">sección siguiente</a>.</p>
 
       <figure class="diagram">
         <a href="arquitectura.svg" target="_blank" rel="noopener"><img src="arquitectura.svg" width="1482" height="891" loading="lazy" decoding="async" alt="Diagrama de arquitectura con iconos de AWS: jugadores y proyector se conectan por HTTPS y WSS a Amazon CloudFront; CloudFront entra por el Internet Gateway de la VPC al Application Load Balancer, cuyo security group solo admite la prefix list de CloudFront; el ALB envía al puerto 3000 de una única tarea de ECS Fargate en la subred pública de la zona A. Amazon ECS mantiene una tarea, la imagen viene de Amazon ECR y los logs van a CloudWatch Logs. Desde el portátil con Kiro, cdk deploy crea el stack en CloudFormation y sube la imagen a ECR."></a>
@@ -351,7 +417,8 @@ npm start</pre>
         <div class="decision"><b>Sin NAT Gateway</b><span>La tarea usa una subred pública para bajar la imagen. Ahorra costo.</span></div>
       </div>
 
-      <h3>CI/CD con GitHub Actions</h3>
+      <h3>Extra: CI/CD del repositorio</h3>
+      <p class="small">No es parte del juego ni de lo que monta Kiro: es la automatización que tiene el repositorio de la charla con GitHub Actions.</p>
       <div class="scroll">
         <table class="services">
           <thead><tr><th>Cuándo</th><th>Qué hace</th></tr></thead>
@@ -361,11 +428,244 @@ npm start</pre>
           </tbody>
         </table>
       </div>
-      <p class="prose">GitHub Actions entra a AWS con OIDC: no hay claves guardadas en el repositorio.</p>
 
       <h3>Pruébalo</h3>
       <p><a class="btn" href="https://dk6drll26dl1g.cloudfront.net/" target="_blank" rel="noopener">Abrir el juego</a></p>
       <p class="small">Espectador: <a href="https://dk6drll26dl1g.cloudfront.net/espectador" target="_blank" rel="noopener">/espectador</a>. Es un entorno de demostración y puede apagarse después de la charla.</p>
+    </section>
+
+    <!-- 11. Prompts -->
+    <section id="prompts" aria-labelledby="h-prompts">
+      <div class="eyebrow">12 · Hazlo tú · Kiro en modo Spec</div>
+      <h2 id="h-prompts">Los prompts para llevarlo a AWS</h2>
+      <p class="prose">Son los prompts que usamos en vivo, en orden. Cada paso dice dónde escribirlo en Kiro, trae el texto para copiar y lo que conviene revisar antes de aprobar. Kiro guarda la spec en <code>.kiro/specs/aws-infra/</code> y pide tu aprobación entre una fase y la siguiente.</p>
+
+      <nav class="route" aria-label="Pasos de los prompts">
+        <div class="route-track">
+          <span class="route-phase ph-prep" aria-hidden="true">Preparar</span>
+          <span class="route-phase ph-spec" aria-hidden="true">Spec</span>
+          <span class="route-phase ph-build" aria-hidden="true">Construir</span>
+          <a href="#p0"><span class="dot">0</span><span>Contexto</span></a>
+          <a href="#p1"><span class="dot">1</span><span>Analizar</span></a>
+          <a href="#p2"><span class="dot">2</span><span>Requisitos</span></a>
+          <a href="#p3"><span class="dot">3</span><span>Diseño</span></a>
+          <a href="#p4"><span class="dot">4</span><span>Tareas</span></a>
+          <a href="#p5"><span class="dot">5</span><span>Ejecutar</span></a>
+          <a href="#p6"><span class="dot">6</span><span>Desplegar</span></a>
+          <a href="#p7"><span class="dot">7</span><span>Verificar</span></a>
+        </div>
+      </nav>
+
+      <div class="callout"><b>Antes de empezar.</b> Necesitas una cuenta de AWS con sesión activa en la terminal (<code>aws login</code>), Docker encendido (CDK construye la imagen del juego en tu equipo) y el repositorio abierto en Kiro. Desplegar tiene costo: borra el stack al terminar (ver el paso 7).</div>
+
+      <!-- Paso 0 -->
+      <article class="phase" id="p0">
+        <div class="phase-head">
+          <h3><span class="step-no">0</span>Darle contexto a Kiro</h3>
+          <span class="mode">Una sola vez</span>
+        </div>
+        <p class="where"><b>Steering (opcional):</b> son notas sobre el proyecto que Kiro incluye en cada conversación, para no tener que explicarle todo de nuevo. No vienen en el repositorio: las genera Kiro en tu equipo. En su panel, entra a <i>Steering</i> → <i>Generate Steering Docs</i>. Kiro lee el código y escribe tres archivos en <code>.kiro/steering/</code>: <code>product.md</code> (qué es el juego), <code>tech.md</code> (con qué está hecho) y <code>structure.md</code> (cómo están organizadas las carpetas). Revísalos y corrige lo que no cuadre.</p>
+        <p class="where"><b>MCP de AWS:</b> en <code>.kiro/settings/mcp.json</code> añade el AWS MCP Server. Así Kiro consulta la documentación y tu cuenta con tus credenciales, en lugar de recordar de memoria.</p>
+        <div class="codeblock">
+          <div class="bar"><span>.kiro/settings/mcp.json</span><button class="copy" type="button" aria-label="Copiar la configuración MCP">Copiar</button></div>
+<pre tabindex="0">{
+  "mcpServers": {
+    "aws-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-proxy-for-aws@latest",
+        "https://aws-mcp.us-east-1.api.aws/mcp",
+        "--metadata", "AWS_REGION=us-east-1"
+      ],
+      "timeout": 100000,
+      "env": { "AWS_MCP_PROXY_PROFILES": "tu-perfil-de-aws" }
+    }
+  }
+}</pre>
+        </div>
+        <p class="small">Requiere <code>uv</code> instalado. Cambia <code>tu-perfil-de-aws</code> por el perfil de tu <code>~/.aws/config</code>.</p>
+      </article>
+
+      <!-- Paso 1 -->
+      <article class="phase" id="p1">
+        <div class="phase-head">
+          <h3><span class="step-no">1</span>Analizar el juego</h3>
+          <span class="mode">Chat Vibe · solo lectura</span>
+        </div>
+        <p class="where"><b>Dónde:</b> chat de Kiro, en una sesión <b>Vibe</b>. Todavía no crea archivos: primero tiene que entender la aplicación.</p>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 1">Copiar</button></div>
+<pre tabindex="0">Analiza este repositorio antes de proponer nada. Quiero llevar el juego de tanques a AWS.
+Lee el README (en especial la sección "Contrato de despliegue"), el Dockerfile, src/server/start.js y config.json, y resúmeme en una lista corta:
+- cómo se ejecuta el servidor y en qué puerto,
+- qué protocolos usa (HTTP, WebSocket) y en qué rutas,
+- dónde vive el estado de la partida y qué implica para escalar,
+- qué ofrece para health check y apagado ordenado,
+- qué recursos (CPU, ancho de banda) necesita con 100 jugadores.
+No escribas código ni crees archivos todavía.</pre>
+        </div>
+        <div class="review">
+          <span class="mini">Qué revisar</span>
+          <ul class="checks">
+            <li>Detecta que solo puede haber <b>una réplica</b>, porque el estado vive en memoria.</li>
+            <li>Ve HTTP y WebSocket en el mismo puerto (<code>/ws/jugador</code>, <code>/ws/espectador</code>).</li>
+            <li>Menciona <code>/health</code>, <code>SIGTERM</code> y el ping cada 10 s.</li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- Paso 2 -->
+      <article class="phase" id="p2">
+        <div class="phase-head">
+          <h3><span class="step-no">2</span>Crear la spec: requisitos</h3>
+          <span class="mode">Spec · requirements.md</span>
+        </div>
+        <p class="where"><b>Dónde:</b> nueva sesión <b>Spec</b> (o el botón “+” en el panel Specs). Nombre sugerido: <code>aws-infra</code>. Kiro escribe <code>requirements.md</code> en notación EARS.</p>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 2">Copiar</button></div>
+<pre tabindex="0">Crea una spec llamada aws-infra para desplegar este juego en AWS. Continúa la spec online-readiness, que dejó el despliegue en AWS fuera de su alcance. Escribe los documentos en español, como las specs que ya existen en .kiro/specs/.
+Objetivo: que cualquier persona del público abra una URL pública con HTTPS desde el móvil y juegue, y que el proyector muestre /espectador.
+Restricciones (salen del Contrato de despliegue del README):
+- Una sola instancia del servidor en todo momento, también durante un despliegue: dos instancias serían dos partidas.
+- HTTP y WebSocket por el mismo puerto; el WebSocket debe funcionar por HTTPS (wss://).
+- Usar /health como health check y respetar el apagado ordenado con SIGTERM.
+- Usar el Dockerfile que ya existe; no modificar el código del juego.
+- Región us-east-1, cuenta ya inicializada con CDK.
+- Infraestructura como código con AWS CDK en TypeScript dentro de una carpeta infra/.
+- El stack se llama TankGameLive.
+- Sin dominio propio: la URL puede ser la que da AWS.
+- Costo bajo mientras no hay charla, y se tiene que poder borrar todo con un solo comando.
+- Logs del servidor accesibles desde la consola o la CLI.
+Empieza solo por requirements.md.</pre>
+        </div>
+        <div class="review">
+          <span class="mini">Qué revisar antes de aprobar</span>
+          <ul class="checks">
+            <li>Hay un requisito explícito de “nunca dos tareas a la vez”.</li>
+            <li>El WebSocket sobre HTTPS aparece como criterio verificable.</li>
+            <li>Pide como salidas la URL del juego, la del espectador y la de <code>/health</code>.</li>
+            <li>Se puede borrar todo con <code>cdk destroy</code>.</li>
+          </ul>
+        </div>
+        <details class="adjust">
+          <summary>Si falta algo, pídelo así</summary>
+          <div class="codeblock prompt">
+            <div class="bar"><span>Ajuste</span><button class="copy" type="button" aria-label="Copiar el ajuste del paso 2">Copiar</button></div>
+<pre tabindex="0">Añade dos requisitos: el balanceador solo debe aceptar tráfico que venga de la CDN, y un despliegue nuevo debe tardar poco en drenar conexiones porque el servidor se apaga en menos de 3 segundos.</pre>
+          </div>
+        </details>
+      </article>
+
+      <!-- Paso 3 -->
+      <article class="phase" id="p3">
+        <div class="phase-head">
+          <h3><span class="step-no">3</span>Diseño: proponer la arquitectura</h3>
+          <span class="mode">Spec · design.md</span>
+        </div>
+        <p class="where"><b>Dónde:</b> la misma sesión Spec, después de aprobar los requisitos. Kiro escribe <code>design.md</code>.</p>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 3">Copiar</button></div>
+<pre tabindex="0">Requisitos aprobados. Ahora el design.md:
+1. Compara al menos tres opciones de cómputo en AWS para este juego (por ejemplo ECS Fargate, EC2, App Runner, Lambda con API Gateway WebSocket) en una tabla: soporte de WebSocket, estado en memoria, esfuerzo de operación y costo mensual aproximado. Elige una y justifica.
+2. Incluye un diagrama Mermaid de la arquitectura final con el recorrido de una conexión WebSocket desde el navegador hasta el contenedor.
+3. Explica cada servicio elegido en una o dos frases, pensando en un público que no conoce AWS.
+4. Detalla las decisiones de configuración que salen de los requisitos: número de tareas y porcentajes de despliegue, health check, timeouts, seguridad de red y política de caché de la CDN.
+5. Añade una estimación de costo por día con el entorno encendido y sin jugadores.
+Consulta la documentación de AWS si tienes la herramienta disponible.</pre>
+        </div>
+        <div class="review">
+          <span class="mini">Qué revisar</span>
+          <ul class="checks">
+            <li>Descarta App Runner y Lambda por el WebSocket o por el estado en memoria.</li>
+            <li>Usa <code>minHealthyPercent 0</code> y <code>maxHealthyPercent 100</code>.</li>
+            <li>CloudFront con las políticas <i>CachingDisabled</i> y <i>AllViewer</i>.</li>
+            <li>El security group del ALB solo admite la prefix list de CloudFront.</li>
+            <li>El deregistration delay es corto (5–10 s).</li>
+          </ul>
+        </div>
+        <details class="adjust">
+          <summary>Si propone otra arquitectura</summary>
+          <p class="small">Compárala con la <a href="#aws">arquitectura de referencia</a>. Si rompe la réplica única o el WebSocket, corrígela así:</p>
+          <div class="codeblock prompt">
+            <div class="bar"><span>Ajuste</span><button class="copy" type="button" aria-label="Copiar el ajuste del paso 3">Copiar</button></div>
+<pre tabindex="0">Revisa el diseño contra el requisito de una sola instancia y WebSocket por HTTPS. Usa CloudFront delante de un Application Load Balancer y una única tarea de ECS Fargate, sin NAT Gateway.</pre>
+          </div>
+        </details>
+      </article>
+
+      <!-- Paso 4 -->
+      <article class="phase" id="p4">
+        <div class="phase-head">
+          <h3><span class="step-no">4</span>Plan de tareas</h3>
+          <span class="mode">Spec · tasks.md</span>
+        </div>
+        <p class="where"><b>Dónde:</b> la misma sesión Spec. Kiro escribe <code>tasks.md</code> con casillas y los requisitos que cubre cada tarea.</p>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 4">Copiar</button></div>
+<pre tabindex="0">Diseño aprobado. Genera tasks.md con tareas pequeñas y verificables, cada una con los requisitos que cubre:
+- crear el proyecto CDK en infra/ (TypeScript, sin tocar el resto del repo),
+- red, balanceador, servicio de contenedores y CDN, cada uno en su tarea,
+- salidas del stack con las URL del juego, del espectador y de /health,
+- validar con cdk synth,
+- desplegar con cdk deploy,
+- verificar /health, el juego y el WebSocket con la URL pública,
+- documentar en el README cómo desplegar y cómo destruir.
+No marques como opcionales las tareas de despliegue y verificación.</pre>
+        </div>
+      </article>
+
+      <!-- Paso 5 -->
+      <article class="phase" id="p5">
+        <div class="phase-head">
+          <h3><span class="step-no">5</span>Ejecutar las tareas</h3>
+          <span class="mode">Construir · hasta cdk synth</span>
+        </div>
+        <p class="where"><b>Dónde:</b> abre <code>tasks.md</code> y pulsa <i>Start task</i> en la primera, o pídelo en el chat. En modo <i>Supervised</i> revisas cada cambio antes de aceptarlo.</p>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 5">Copiar</button></div>
+<pre tabindex="0">Ejecuta las tareas de tasks.md en orden hasta la de cdk synth incluida. Después de cada una, dime en una línea qué archivo creaste y qué requisito cubre. Si cdk synth falla, corrige y vuelve a intentarlo.</pre>
+        </div>
+        <p class="callout"><b>Ojo con el bootstrap.</b> CDK necesita un <code>cdk bootstrap</code> una sola vez por cuenta y región. Si tu cuenta ya lo tiene, no lo repitas. Aprueba los comandos de terminal uno a uno para ver qué ejecuta Kiro.</p>
+      </article>
+
+      <!-- Paso 6 -->
+      <article class="phase" id="p6">
+        <div class="phase-head">
+          <h3><span class="step-no">6</span>Desplegar</h3>
+          <span class="mode">Construir · ~7 min</span>
+        </div>
+        <p class="where"><b>Dónde:</b> el mismo chat. El comando tarda unos 7 minutos, casi todo en crear la distribución de CloudFront.</p>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 6">Copiar</button></div>
+<pre tabindex="0">Ejecuta la tarea de despliegue: cdk deploy TankGameLive desde infra/, sin pedir aprobación interactiva de cambios de IAM. Cuando termine, muéstrame las salidas del stack y marca la tarea como completada.</pre>
+        </div>
+        <p class="callout ok"><b>Mientras esperas.</b> Abre la consola de CloudFormation → <code>TankGameLive</code> → <i>Events</i> y mira cómo se crean los recursos uno por uno.</p>
+      </article>
+
+      <!-- Paso 7 -->
+      <article class="phase" id="p7">
+        <div class="phase-head">
+          <h3><span class="step-no">7</span>Verificar y compartir la URL</h3>
+          <span class="mode">Construir · ~3 min</span>
+        </div>
+        <div class="codeblock prompt">
+          <div class="bar"><span>Prompt</span><button class="copy" type="button" aria-label="Copiar el prompt del paso 7">Copiar</button></div>
+<pre tabindex="0">Ejecuta la tarea de verificación con la URL pública: comprueba que /health responde 200 y lanza la prueba de carga con 20 jugadores durante 20 segundos (npm run loadtest con --url wss://...). Resume el resultado y dime si cumple los criterios.</pre>
+        </div>
+        <div class="review">
+          <span class="mini">Qué revisar</span>
+          <ul class="checks">
+            <li><code>/health</code> devuelve <code>status: "ok"</code>.</li>
+            <li>La prueba de carga termina con código 0.</li>
+            <li>El juego carga en el móvil y el espectador en otra pantalla.</li>
+          </ul>
+        </div>
+        <div class="codeblock">
+          <div class="bar"><span>Al terminar · borrar todo</span><button class="copy" type="button" aria-label="Copiar el comando para borrar el stack">Copiar</button></div>
+<pre tabindex="0">cd infra && npx cdk destroy TankGameLive --force</pre>
+        </div>
+        <p class="small">Encendido y sin jugadores, el stack cuesta unos 2 USD al día (Fargate, el ALB y las IPv4 públicas).</p>
+      </article>
     </section>
   </main>
 </div>
