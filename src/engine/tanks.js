@@ -65,6 +65,7 @@ export function createTank(opts) {
     regenAcc: 0, // vida regenerada acumulada que aún no llega a un punto entero
     speedMultiplier: 1,
     lastInput: NEUTRAL_INPUT,
+    inputSeq: null, // `seq` del último Input recibido (lo usa la predicción del cliente)
   };
 }
 

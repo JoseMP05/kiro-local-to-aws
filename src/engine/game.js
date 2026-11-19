@@ -87,6 +87,7 @@ export function createGame({ config, rng, bots, log }) {
     const tank = world.tanks.get(tankId);
     if (!tank || tank.dead) return; // Descartar si eliminado (Req. 7.7).
     tank.lastInput = input; // Reemplaza sin acumular (Req. 5.3).
+    if (input.seq !== undefined) tank.inputSeq = input.seq;
   }
 
   function addBot(nick) {
@@ -426,6 +427,7 @@ export function createGame({ config, rng, bots, log }) {
         nick: t.nick, x: t.x, y: t.y, angle: t.angle, hp: t.hp, maxHp: t.maxHp, score: t.score,
         dead: t.dead, deadTick: t.deadTick, deathPos: t.deathPos ? { ...t.deathPos } : null,
         invulnerableUntilTick: t.invulnerableUntilTick,
+        inputSeq: t.inputSeq, speedMultiplier: t.speedMultiplier,
         inv: t.invulnerableUntilTick >= 0 && world.tick <= t.invulnerableUntilTick,
         shield: t.shieldUntilTick >= 0 && world.tick <= t.shieldUntilTick,
         shieldMs: t.shieldUntilTick >= 0 && world.tick <= t.shieldUntilTick
