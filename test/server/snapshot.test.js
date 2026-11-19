@@ -96,3 +96,21 @@ test("estado del Jugador: solo sus propias Balas llevan own", () => {
   assert.equal(forAna.find((b) => b.own).id, anaBullet.id);
   for (const b of forAna) assert.ok(!("ownerId" in b), "no se envía el id del dueño");
 });
+test("estado del Jugador: su Tanque trae ack del último Input y speedMul", () => {
+  const { game, config } = makeGame(1, { "tank.protectionS": 0, "boxes.max": 0 });
+  game.requestJoin("c1", "Ana");
+  game.requestJoin("c2", "Beto");
+  game.step();
+  const [ana, beto] = [...game._world.tanks.values()];
+  let own = buildPlayerState(game.getView(), ana.id, config).tanks.find((t) => t.id === ana.id);
+  assert.equal("ack" in own, false, "sin Inputs todavía no hay ack");
+  game.setInput(ana.id, { w: false, a: false, s: false, d: true, fire: false, aim: 0, seq: 12 });
+  game.step();
+  const st = buildPlayerState(game.getView(), ana.id, config);
+  own = st.tanks.find((t) => t.id === ana.id);
+  assert.equal(own.ack, 12);
+  assert.equal(own.speedMul, 1);
+  const other = st.tanks.find((t) => t.id === beto.id);
+  assert.ok(other && !("ack" in other) && !("speedMul" in other), "solo el Tanque propio");
+  assert.equal(buildWelcomeConfig(config).tankSpeed, config.tank.speed);
+});

@@ -38,9 +38,10 @@ npm test
 ### Cómo se juega
 
 - Cada tanque tiene 100 de vida y cada bala quita 10. Si tienes puntos y estás en el top 10, tienes vida extra: +30 si eres el líder, +20 en 2.º y 3.º puesto, +10 del 4.º al 10.º. Los tanques con vida extra muestran la barra con borde dorado. Si pasas 4 segundos sin recibir daño, recuperas 4 de vida por segundo hasta tu máximo.
+- Tu tanque se mueve en cuanto pulsas una tecla: el navegador predice el movimiento con las mismas reglas que el servidor y lo corrige con cada estado que recibe.
 - Tus balas se ven verdes y las de los demás naranjas.
 - Si un tanque, una bala o una caja queda debajo del mapa, del ranking, de los avisos de eliminaciones o de la ayuda, ese panel se vuelve casi transparente.
-- Puedes disparar cada 0,3 s y tener hasta 5 balas en el aire. Las balas duran 3 s, rebotan hasta 3 veces y también te dañan a ti.
+- Puedes disparar cada 0,3 s y tener hasta 10 balas en el aire, así que manteniendo el clic disparas sin pausas. Las balas duran 3 s, rebotan hasta 3 veces y también te dañan a ti.
 - Eliminar a otro tanque suma puntos (bonus extra si es el líder). Al morir pierdes la cuarta parte de tus puntos y reapareces a los 3 segundos, en un punto lejos de los demás, con 3 segundos de protección: durante ese tiempo eres invulnerable pero no puedes disparar; empiezas a disparar en cuanto termina.
 - Las eliminaciones seguidas forman una racha: a las 3, 5 y cada 5 más se anuncia en pantalla.
 - Las cajas aparecen en el mapa:

@@ -32,6 +32,7 @@ export function buildWelcomeConfig(config) {
     maxHealth: config.tank.maxHealth,
     reloadMs: config.bullet.reloadMs,
     tankSize: config.tank.size,
+    tankSpeed: config.tank.speed,
     bulletRadius: config.bullet.radius,
     boxSize: config.boxes.size,
     barrelLength: config.tank.barrelLength,
@@ -110,6 +111,9 @@ export function buildPlayerState(view, tankId, cfg, kills = [], picked = []) {
   for (const t of view.tanks) {
     if (t.id === tankId) {
       const st = toTankState(t);
+      // Para la predicción del cliente: último Input aplicado y multiplicador de velocidad.
+      if (t.inputSeq !== null && t.inputSeq !== undefined) st.ack = t.inputSeq;
+      st.speedMul = t.speedMultiplier ?? 1;
       if (t.dead && t.respawnTick !== null && t.respawnTick !== undefined) {
         st.respawnTick = t.respawnTick;
       }

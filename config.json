@@ -102,7 +102,7 @@
     "radius": { "default": 5, "min": 1, "max": 50 },
     "damage": { "default": 10, "min": 1, "max": 1000 },
     "reloadMs": { "default": 300, "min": 0, "max": 10000 },
-    "maxActive": { "default": 5, "min": 1, "max": 50, "integer": true },
+    "maxActive": { "default": 10, "min": 1, "max": 50, "integer": true },
     "maxBounces": { "default": 3, "min": 0, "max": 10, "integer": true },
     "lifetimeS": { "default": 3, "min": 0.1, "max": 60 },
     "selfDamage": { "default": true }

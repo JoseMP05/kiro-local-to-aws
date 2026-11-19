@@ -46,7 +46,8 @@ export function validateNick(raw, { minLen, maxLen }) {
 }
 
 /**
- * Valida un Input y devuelve una copia saneada con solo los 6 campos conocidos.
+ * Valida un Input y devuelve una copia saneada con solo los 6 campos conocidos,
+ * más `seq` si viene: número de secuencia del cliente para su predicción.
  * @param {unknown} value valor recibido del cliente
  * @returns {{ ok: true, input: { w: boolean, a: boolean, s: boolean, d: boolean, fire: boolean, aim: number } } | { ok: false, code: string, message: string }}
  */
@@ -75,15 +76,21 @@ export function validateInput(value) {
       message: 'El campo "aim" del Input debe ser un número finito.',
     };
   }
-  return {
-    ok: true,
-    input: {
-      w: v.w,
-      a: v.a,
-      s: v.s,
-      d: v.d,
-      fire: v.fire,
-      aim: v.aim,
-    },
+  if (v.seq !== undefined && !(Number.isSafeInteger(v.seq) && v.seq >= 0)) {
+    return {
+      ok: false,
+      code: "INPUT_BAD_FIELD",
+      message: 'El campo "seq" del Input debe ser un entero no negativo.',
+    };
+  }
+  const input = {
+    w: v.w,
+    a: v.a,
+    s: v.s,
+    d: v.d,
+    fire: v.fire,
+    aim: v.aim,
   };
+  if (v.seq !== undefined) input.seq = v.seq;
+  return { ok: true, input };
 }

@@ -53,6 +53,8 @@ const SCHEMAS = {
 
 /** Solo para `input`: lista de campos conocidos a conservar. */
 const INPUT_FIELDS = ["w", "a", "s", "d", "fire", "aim"];
+// Campos opcionales de input: solo se copian si vienen (validateInput los revisa).
+const INPUT_OPTIONAL_FIELDS = ["seq"];
 
 /**
  * Serializa un mensaje a texto JSON.
@@ -95,6 +97,7 @@ export function decode(text) {
   if (parsed.type === "input") {
     const data = {};
     for (const f of INPUT_FIELDS) data[f] = parsed.data[f];
+    for (const f of INPUT_OPTIONAL_FIELDS) if (parsed.data[f] !== undefined) data[f] = parsed.data[f];
     return { ok: true, message: { type: "input", data } };
   }
 

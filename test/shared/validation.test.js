@@ -29,3 +29,17 @@ test("validateInput ignora campos extra y rechaza aim inválido", () => {
   assert.equal(validateInput({ w: true, a: false, s: false, d: false, fire: true, aim: "1" }).ok, false);
   assert.equal(validateInput({ w: true, a: false, s: false, d: false, fire: true, aim: NaN }).ok, false);
 });
+test("validateInput acepta seq entero no negativo y rechaza los demás", () => {
+  const base = { w: false, a: false, s: false, d: true, fire: false, aim: 0 };
+  assert.equal(validateInput({ ...base, seq: 42 }).input.seq, 42);
+  assert.equal("seq" in validateInput(base).input, false);
+  for (const bad of [-1, 1.5, "3", NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(validateInput({ ...base, seq: bad }).ok, false, String(bad));
+  }
+});
+test("decode conserva seq en los mensajes input", async () => {
+  const { decode } = await import("../../src/shared/protocol.js");
+  const r = decode(JSON.stringify({ type: "input", data: { w: false, a: false, s: false, d: true, fire: false, aim: 0, seq: 7, x: 1 } }));
+  assert.equal(r.ok, true);
+  assert.deepEqual(Object.keys(r.message.data).sort(), ["a", "aim", "d", "fire", "s", "seq", "w"]);
+});

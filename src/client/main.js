@@ -4,6 +4,7 @@
 import { encode, decode } from "/shared/protocol.js";
 import { createStateBuffer } from "/shared/interpolation.js";
 import { createInputSampler } from "./input-sampler.js";
+import { createPredictor, createOwnBulletShift } from "./prediction.js";
 import { computeCamera, screenToWorld, worldToScreen } from "./camera.js";
 import { drawFrame } from "./render.js";
 import { drawHud, powerupBadges, boxLegend } from "./hud.js";
@@ -30,7 +31,9 @@ let sampler = createInputSampler();
 let ownId = null;
 let deathFocus = null;
 let lastState = null;
-let lastSendAt = 0;
+let predictor = null; // predicción del movimiento propio (se crea con el welcome)
+let inputSeq = 0;
+const ownShots = createOwnBulletShift();
 let frame = 0;
 let showHelp = true; // panel de controles: visible al entrar, se oculta solo a los 10 s; H lo alterna
 let helpHideAt = 0; // instante (performance.now) del ocultado automático; 0 = sin temporizador
@@ -94,6 +97,13 @@ function handleServerMessage(msg) {
   if (msg.type === "welcome") {
     welcome = msg.data;
     ownId = msg.data.tankId;
+    predictor = createPredictor({
+      tickRate: msg.data.config.tickRate,
+      tankSize: msg.data.config.tankSize,
+      tankSpeed: msg.data.config.tankSpeed,
+      arena: msg.data.arena,
+      obstacles: msg.data.obstacles,
+    });
     buffer = createStateBuffer({
       tickRate: msg.data.config.tickRate,
       interpolationDelayMs: msg.data.config.interpolationDelayMs,
@@ -103,6 +113,7 @@ function handleServerMessage(msg) {
   }
   if (msg.type === "state") {
     reactToState(lastState, msg.data);
+    predictor?.reconcile(msg.data.tanks.find((t) => t.id === ownId));
     lastState = msg.data;
     if (buffer) buffer.push(msg.data, performance.now());
     // Foco al morir.
@@ -221,7 +232,7 @@ joinForm.addEventListener("submit", (e) => {
 });
 
 rejoinButton.addEventListener("click", () => {
-  welcome = null; ownId = null; buffer = null; ranking = null; lastState = null; deathFocus = null;
+  welcome = null; ownId = null; buffer = null; ranking = null; lastState = null; deathFocus = null; predictor = null;
   killFeed.clear(); banner = null; hitFlashAt = -Infinity; killedBy = null;
   sampler = createInputSampler();
   showJoin();
@@ -281,26 +292,36 @@ canvas.addEventListener("mousedown", () => sampler.setFire(true));
 canvas.addEventListener("mouseup", () => sampler.setFire(false));
 
 // --- Bucle de envío de Input ---
-
-function startSendLoop(tickRate) {
-  const interval = 1000 / tickRate;
-  setInterval(() => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || ownId === null) return;
-    const now = performance.now();
-    if (now - lastSendAt < interval) return;
-    const input = sampler.flush();
-    if (input) {
-      // Un sonido por recarga como mucho (el servidor no dispara más rápido).
-      if (input.fire && now - lastShotSoundAt > (welcome?.config.reloadMs ?? 500)) {
-        audio.shot();
-        lastShotSoundAt = now;
-      }
-      ws.send(encode({ type: "input", data: input }));
-      lastSendAt = now;
-    }
-  }, interval / 2);
+// Un Input por Tick, aunque no cambie: así cada Input enviado equivale a un Tick
+// de movimiento y la predicción puede volver a aplicar los que el servidor aún
+// no confirmó. El acumulador mantiene la cadencia media aunque el temporizador
+// del navegador se retrase.
+let nextClientTickAt = 0;
+function clientTick(now) {
+  const input = sampler.flush() ?? sampler.current();
+  const seq = ++inputSeq;
+  // Sonido al disparar, como mucho uno por recarga y solo si el servidor dejaría disparar.
+  const ownState = lastState?.tanks.find((t) => t.id === ownId);
+  const canFire = ownState && !ownState.dead && !ownState.inv;
+  if (input.fire && canFire && now - lastShotSoundAt > (welcome?.config.reloadMs ?? 500)) {
+    audio.shot();
+    lastShotSoundAt = now;
+  }
+  ws.send(encode({ type: "input", data: { ...input, seq } }));
+  predictor?.tick(input, seq, now);
 }
-startSendLoop(30); // frecuencia por defecto; el welcome puede ajustarla
+setInterval(() => {
+  if (!ws || ws.readyState !== WebSocket.OPEN || ownId === null || !welcome) return;
+  const interval = 1000 / welcome.config.tickRate;
+  const now = performance.now();
+  // Al empezar, o tras una pausa larga (pestaña en segundo plano), no se recupera el atraso.
+  if (nextClientTickAt === 0 || now - nextClientTickAt > interval * 5) nextClientTickAt = now;
+  while (now >= nextClientTickAt) {
+    // Se usa el instante programado (no el real) para que el dibujo avance a ritmo constante.
+    clientTick(nextClientTickAt);
+    nextClientTickAt += interval;
+  }
+}, 8);
 
 /**
  * Rectángulos en pantalla de lo que importa ver (Tanques con su apodo y barra
@@ -325,7 +346,18 @@ function draw() {
   frame++;
   if (welcome && buffer) {
     const scene = buffer.sample(performance.now());
-    const own = scene.tanks.get(ownId);
+    // Tanque propio: en la posición predicha (sin esperar al servidor) y con el ángulo local.
+    let own = scene.tanks.get(ownId);
+    const serverOwn = own; // interpolado: va al mismo ritmo que las Balas
+    const predicted = predictor?.position(performance.now());
+    const ownLatest = lastState?.tanks.find((t) => t.id === ownId);
+    if (predicted && ownLatest && !ownLatest.dead) {
+      own = { ...ownLatest, x: predicted.x, y: predicted.y, angle: sampler.current().aim };
+      scene.tanks.set(ownId, own);
+    }
+    // Las Balas propias salen del cañón dibujado (ver createOwnBulletShift).
+    const shift = serverOwn && own !== serverOwn ? { x: own.x - serverOwn.x, y: own.y - serverOwn.y } : { x: 0, y: 0 };
+    scene.bullets = ownShots.apply(scene.bullets, shift, performance.now());
     const focus = own ? { x: own.x, y: own.y } : deathFocus || { x: welcome.arena.width / 2, y: welcome.arena.height / 2 };
 
     const cam = computeCamera(
