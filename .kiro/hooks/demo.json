@@ -1,0 +1,22 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run tests on save",
+      "description": "Runs the test suite every time a JavaScript file in src/ or test/ is saved.",
+      "trigger": "PostFileSave",
+      "matcher": "^(src|test)/.*\\.js$",
+      "timeout": 60,
+      "action": { "type": "command", "command": "node --test" }
+    },
+    {
+      "name": "Check against the spec",
+      "description": "Run manually to compare the code with the requirements.",
+      "trigger": "Manual",
+      "action": {
+        "type": "agent",
+        "prompt": "Revisa el código actual contra .kiro/specs/*/requirements.md. Lista en español qué requisitos ya se cumplen, cuáles faltan y cuáles no tienen pruebas. No modifiques archivos."
+      }
+    }
+  ]
+}
