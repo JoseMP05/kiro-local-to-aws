@@ -121,7 +121,7 @@ export const CONFIG_SCHEMA = {
   "bullet.radius": { type: "number", default: 5, min: 1, max: 50 },
   "bullet.damage": { type: "number", default: 10, min: 1, max: 1000 },
   "bullet.reloadMs": { type: "number", default: 300, min: 0, max: 10000 },
-  "bullet.maxActive": { type: "number", default: 5, min: 1, max: 50, integer: true },
+  "bullet.maxActive": { type: "number", default: 10, min: 1, max: 50, integer: true },
   "bullet.maxBounces": { type: "number", default: 3, min: 0, max: 10, integer: true },
   "bullet.lifetimeS": { type: "number", default: 3, min: 0.1, max: 60 },
   "bullet.selfDamage": { type: "boolean", default: true },
