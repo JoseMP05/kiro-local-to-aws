@@ -112,3 +112,41 @@ export function createPredictor({ tickRate, tankSize, tankSpeed, arena, obstacle
   return { tick, reconcile, position, reset, pendingCount: () => pending.length };
 }
 
+/** Tiempo (ms) en que la Bala propia pasa de salir del cañón dibujado a su recorrido real. */
+const SHOT_BLEND_MS = 250;
+
+/**
+ * Ajuste de las Balas propias. El Tanque propio se dibuja en la posición
+ * predicha, por delante de donde el servidor lo tenía al disparar; sin ajuste,
+ * al avanzar las Balas saldrían por detrás del cañón. Cada Bala propia nueva se
+ * desplaza lo mismo que el Tanque predicho respecto al del servidor, y ese
+ * desplazamiento se reduce a cero en SHOT_BLEND_MS.
+ */
+export function createOwnBulletShift({ blendMs = SHOT_BLEND_MS } = {}) {
+  const shifts = new Map(); // id de Bala -> { x, y, born }
+  /**
+   * @param {Map<number, { x: number, y: number, own?: boolean }>} bullets Balas interpoladas
+   * @param {{ x: number, y: number }} shift Tanque predicho − Tanque del servidor (interpolado)
+   * @param {number} now
+   * @returns {Map} Balas con las propias desplazadas
+   */
+  function apply(bullets, shift, now) {
+    const out = new Map();
+    for (const [id, b] of bullets) {
+      if (!b.own) {
+        out.set(id, b);
+        continue;
+      }
+      let s = shifts.get(id);
+      if (!s) {
+        s = { x: shift.x, y: shift.y, born: now };
+        shifts.set(id, s);
+      }
+      const k = Math.max(0, 1 - (now - s.born) / blendMs);
+      out.set(id, k > 0 ? { ...b, x: b.x + s.x * k, y: b.y + s.y * k } : b);
+    }
+    for (const id of shifts.keys()) if (!bullets.has(id)) shifts.delete(id);
+    return out;
+  }
+  return { apply, size: () => shifts.size };
+}

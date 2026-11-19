@@ -4,7 +4,7 @@
 import { encode, decode } from "/shared/protocol.js";
 import { createStateBuffer } from "/shared/interpolation.js";
 import { createInputSampler } from "./input-sampler.js";
-import { createPredictor } from "./prediction.js";
+import { createPredictor, createOwnBulletShift } from "./prediction.js";
 import { computeCamera, screenToWorld, worldToScreen } from "./camera.js";
 import { drawFrame } from "./render.js";
 import { drawHud, powerupBadges, boxLegend } from "./hud.js";
@@ -33,6 +33,7 @@ let deathFocus = null;
 let lastState = null;
 let predictor = null; // predicción del movimiento propio (se crea con el welcome)
 let inputSeq = 0;
+const ownShots = createOwnBulletShift();
 let frame = 0;
 let showHelp = true; // panel de controles: visible al entrar, se oculta solo a los 10 s; H lo alterna
 let helpHideAt = 0; // instante (performance.now) del ocultado automático; 0 = sin temporizador
@@ -347,12 +348,16 @@ function draw() {
     const scene = buffer.sample(performance.now());
     // Tanque propio: en la posición predicha (sin esperar al servidor) y con el ángulo local.
     let own = scene.tanks.get(ownId);
+    const serverOwn = own; // interpolado: va al mismo ritmo que las Balas
     const predicted = predictor?.position(performance.now());
     const ownLatest = lastState?.tanks.find((t) => t.id === ownId);
     if (predicted && ownLatest && !ownLatest.dead) {
       own = { ...ownLatest, x: predicted.x, y: predicted.y, angle: sampler.current().aim };
       scene.tanks.set(ownId, own);
     }
+    // Las Balas propias salen del cañón dibujado (ver createOwnBulletShift).
+    const shift = serverOwn && own !== serverOwn ? { x: own.x - serverOwn.x, y: own.y - serverOwn.y } : { x: 0, y: 0 };
+    scene.bullets = ownShots.apply(scene.bullets, shift, performance.now());
     const focus = own ? { x: own.x, y: own.y } : deathFocus || { x: welcome.arena.width / 2, y: welcome.arena.height / 2 };
 
     const cam = computeCamera(

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createPredictor } from "../../src/client/prediction.js";
+import { createPredictor, createOwnBulletShift } from "../../src/client/prediction.js";
 const N = { w: false, a: false, s: false, d: false, fire: false, aim: 0 };
 const RIGHT = { ...N, d: true };
 const make = (obstacles = []) =>
@@ -60,4 +60,18 @@ test("eliminado: no hay predicción hasta reaparecer", () => {
   assert.equal(p.pendingCount(), 0);
   p.reconcile({ x: 700, y: 300, dead: false });
   assert.deepEqual(p.position(0), { x: 700, y: 300 });
+});
+test("Balas propias: salen desplazadas como el Tanque predicho y el desplazamiento se desvanece", () => {
+  const shots = createOwnBulletShift({ blendMs: 200 });
+  const bullets = (x) => new Map([[1, { id: 1, x, y: 0, own: true }], [2, { id: 2, x: 500, y: 0 }]]);
+  let out = shots.apply(bullets(100), { x: 40, y: 0 }, 0);
+  assert.equal(out.get(1).x, 140, "al aparecer, desplazada lo mismo que el Tanque");
+  assert.equal(out.get(2).x, 500, "las ajenas no se tocan");
+  // El desplazamiento se fija al aparecer: uno nuevo no cambia el de esta Bala.
+  out = shots.apply(bullets(120), { x: 0, y: 0 }, 100);
+  assert.equal(out.get(1).x, 140, "a mitad del tiempo, la mitad del desplazamiento");
+  out = shots.apply(bullets(140), { x: 40, y: 0 }, 200);
+  assert.equal(out.get(1).x, 140, "al final, en su posición real");
+  shots.apply(new Map(), { x: 0, y: 0 }, 300);
+  assert.equal(shots.size(), 0, "olvida las Balas que ya no existen");
 });
