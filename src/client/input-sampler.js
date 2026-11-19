@@ -85,5 +85,9 @@ export function createInputSampler() {
     return null;
   }
 
-  return { setKey, setFire, setAim, releaseAll, flush };
+  /** Copia del estado actual (para reenviarlo en cada Tick aunque no cambie). */
+  function current_() {
+    return { ...current };
+  }
+  return { setKey, setFire, setAim, releaseAll, flush, current: current_ };
 }
