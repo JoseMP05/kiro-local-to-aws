@@ -2,7 +2,7 @@
 // archivos ni el reloj. Determinista a partir de (config, rng, operaciones).
 
 import { createTank, respawnTank, newTargetId, NEUTRAL_INPUT } from "./tanks.js";
-import { moveTank } from "./movement.js";
+import { moveTank } from "../shared/movement.js";
 import { tryFire, advanceBullet } from "./bullets.js";
 import { resolveHits } from "./hits.js";
 import { applyScoring } from "./scoring.js";

@@ -1,8 +1,9 @@
-// Movimiento de Tanques por ejes contra Obstáculos y bordes de la Arena.
+// Movimiento de Tanques por ejes contra Obstáculos y bordes de la Arena. Lo usan
+// el Motor_Juego y la predicción del Cliente_Juego (por eso vive en shared).
 // Resolución exacta: busca el Obstáculo más cercano en todo el recorrido, de
 // modo que una Pared delgada nunca se atraviesa aunque el paso sea grande.
 
-import { normalizeAngle } from "../shared/math.js";
+import { normalizeAngle } from "./math.js";
 
 /**
  * Calcula la dirección normalizada (dx, dy) a partir del Input WASD.
